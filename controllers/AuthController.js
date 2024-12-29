@@ -1,4 +1,4 @@
-const User = require("../models/User.js");
+const { User } = require("../models/index.js");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const sendEmail = require("../utils/SendEmail.js");
@@ -14,15 +14,32 @@ const login = async (req, res) => {
     if (!findUser) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
-    console.log("findUser", findUser);
 
     // Check password
     const isMatch = await bcryptjs.compare(password, findUser.password);
     if (!isMatch) {
       return res.status(400).json({ message: "password Dose not match" });
     }
-    const token = jwt.sign({ user: findUser }, process.env.JWT_SECRET, {
+    console.log("findUser", findUser);
+    const user = {
+      _id: findUser._id,
+      name: findUser.name,
+      email: findUser.email,
+      role: findUser.role,
+      weekStart: findUser.weekStart,
+    }
+    const token = jwt.sign({ user }, process.env.JWT_SECRET, {
       expiresIn: "30day",
+    });
+
+    global.io.emit('notification', {
+      message: `${findUser.name} has logged in`,
+    });
+
+    // Store in cookies and session
+    res.cookie('token', token, {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
 
     return res.status(200).json({
@@ -63,6 +80,10 @@ const requestPasswordReset = async (req, res) => {
       text: message,
     });
 
+    global.io.emit('notification', {
+      message: `password reset email sent`,
+    });
+
     return res.status(200).json({ message: "password reset email sent" });
   } catch (error) {
     return res
@@ -85,13 +106,22 @@ const resetPasswordOTP = async (req, res) => {
     });
 
     if (!findUser) {
+      global.io.emit('notification', {
+        message: `Invalid or expired OTP`,
+      });
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
+
+    global.io.emit('notification', {
+      message: `OTP successfully verified`,
+    });
+
     res.status(200).json({ message: "OTP successfully verified" });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 const resetPassword = async (req, res) => {
   try {
     const { otp, confirmPassword, password } = req.body;
@@ -123,6 +153,10 @@ const resetPassword = async (req, res) => {
     findUser.resetPasswordToken = undefined;
     findUser.resetPasswordExpires = undefined;
     await findUser.save();
+
+    global.io.emit('notification', {
+      message: `password reset successful`,
+    });
 
     res.status(200).json({ message: "password reset successful" });
   } catch (error) {
@@ -158,6 +192,10 @@ const resetCurrantPassword = async (req, res) => {
     findUser.password = hashedPassword;
     await findUser.save();
 
+    global.io.emit('notification', {
+      message: `password reset successful`,
+    });
+
     res.status(200).json({ message: "password reset successful" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -166,12 +204,105 @@ const resetCurrantPassword = async (req, res) => {
 
 const authCheck = async (req, res) => {
   try {
-    res.status(200).json({ findUser: req.findUser });
+    res.status(200).json({
+      success: true,
+      user: req.user
+    });
   } catch (error) {
     console.log("Error in authCheck controller", error.message);
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+const successGoogleLogin = async (req, res) => {
+  try {
+    if (!req.user) {
+      res.redirect('/failure');
+    }
+
+    const { email, displayName, sub, id, provider } = req.user;
+    console.log("req.user", req.user);
+
+    // Check findUser
+    const findUser = await User.findOne({ email: email });
+
+    if (findUser) {
+      const user = {
+        _id: findUser._id,
+        name: findUser.name,
+        email: findUser.email,
+        role: findUser.role,
+        weekStart: findUser.weekStart,
+      }
+      const token = jwt.sign({ user }, process.env.JWT_SECRET, {
+        expiresIn: "30day",
+      });
+      res.cookie('token', token, {
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      });;
+
+      global.io.emit('notification', {
+        message: `${findUser.name} has logged in`,
+      });
+
+      return res.redirect(`${process.env.FRONTEND_URL}/login?token=${token}`);
+
+    }
+
+    const hashedPassword = await bcryptjs.hash('123456', 10);
+
+    const createUser = new User({
+      name: displayName,
+      email: email,
+      thirdParty: {
+        provider: provider,
+        providerid: id,
+        sub: sub
+      },
+      createdBy: displayName,
+      password: hashedPassword,
+    });
+
+    await createUser.save();
+
+    const user = {
+      _id: findUser._id,
+      name: findUser.name,
+      email: findUser.email,
+      role: findUser.role,
+      weekStart: findUser.weekStart,
+    }
+    const token = jwt.sign({ user }, process.env.JWT_SECRET, {
+      expiresIn: "30day",
+    });
+
+    global.io.emit('notification', {
+      message: `${findUser.name} has logged in`,
+    });
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    });
+    return res.redirect(`${process.env.FRONTEND_URL}/login?token=${token}`);
+  } catch (error) {
+    console.log("Error in authCheck controller", error.message);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+const failureGoogleLogin = async (req, res) => {
+  try {
+    global.io.emit('notification', {
+      message: `Error in google login`,
+    });
+    res.send("Error");
+  } catch (error) {
+    console.log("Error in authCheck controller", error.message);
+    res.status(500).json({ message: "Internal server error", error: error });
+  }
+}
 
 module.exports = {
   login,
@@ -180,4 +311,6 @@ module.exports = {
   authCheck,
   resetCurrantPassword,
   resetPasswordOTP,
+  failureGoogleLogin,
+  successGoogleLogin,
 };

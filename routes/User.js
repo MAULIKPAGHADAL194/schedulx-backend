@@ -42,6 +42,15 @@ function AddValidation(req, res, next) {
       'ContentCreators',
       'MarketingProfessionals'
     ).required(),
+    weekStart: Joi.string().valid(
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday'
+    ).required(),
   });
   validateRequest(req, res, next, schema);
 }
@@ -55,6 +64,22 @@ function UpdateValidation(req, res, next) {
       .min(1000000000)
       .max(9999999999)
       .optional(),
+    weekStart: Joi.string().valid(
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday'
+    ).optional(),
+    role: Joi.string().valid(
+      'Solopreneurs',
+      'SmallBusinessOwners',
+      'SocialMediaManagers',
+      'ContentCreators',
+      'MarketingProfessionals'
+    ).optional(),
   });
   validateRequest(req, res, next, schema);
 }

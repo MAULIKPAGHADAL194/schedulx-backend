@@ -9,7 +9,6 @@ const userSchema = new mongoose.Schema(
         email: {
             type: String,
             required: true,
-            unique: true,
         },
         password: {
             type: String,
@@ -24,6 +23,18 @@ const userSchema = new mongoose.Schema(
         resetPasswordToken: {
             type: String,
         },
+        thirdParty: {
+            provider: {
+                type: String,
+                enum: ['google', 'facebook'],
+            },
+            providerid: {
+                type: String,
+            },
+            sub: {
+                type: String,
+            }
+        },
         role: {
             type: String,
             enum: ['Solopreneurs', 'SmallBusinessOwners', 'SocialMediaManagers', 'ContentCreators', 'MarketingProfessionals'],
@@ -31,6 +42,7 @@ const userSchema = new mongoose.Schema(
         weekStart: {
             type: String,
             enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+            default: 'Sunday',
         },
         isActive: {
             type: Number,
@@ -43,6 +55,29 @@ const userSchema = new mongoose.Schema(
         },
         lastModifiedBy: {
             type: String,
+        },
+        twitter: {
+            followers: {
+                type: Number,
+            },
+            following: {
+                type: Number,
+            },
+            tweets: {
+                type: Number,
+            },
+            listed: {
+                type: Number,
+            },
+            profileImage: {
+                type: String,
+            },
+            location: {
+                type: String,
+            },
+            createdAt: {
+                type: Date,
+            },
         },
     },
     { timestamps: true }

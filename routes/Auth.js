@@ -1,5 +1,7 @@
 const express = require("express");
 const Joi = require("joi");
+const passport = require("passport");
+require("../config/passport.js");
 
 const {
   login,
@@ -8,6 +10,10 @@ const {
   authCheck,
   resetCurrantPassword,
   resetPasswordOTP,
+  successGoogleLogin,
+  failureGoogleLogin,
+  // successFacebookLogin,
+  // failureFacebookLogin,
 } = require("../controllers/AuthController.js");
 
 const validateRequest = require("../middleware/validate-request.js");
@@ -27,6 +33,22 @@ router.post(
 );
 router.get("/authCheck", authMiddleware, authCheck);
 router.post("/logout", authMiddleware, logout);
+
+//! Google Auth 
+router.get('/google', passport.authenticate('google', { scope: ['email', 'profile'] }));
+
+//? Auth Callback 
+router.get('/google/callback',
+  passport.authenticate('google', {
+    successRedirect: '/api/v1/auth/success',
+    failureRedirect: '/api/v1/auth/failure'
+  }));
+
+//! Success 
+router.get('/success', successGoogleLogin);
+
+//! failure 
+router.get('/failure', failureGoogleLogin);
 
 function LoginValidation(req, res, next) {
   const schema = Joi.object({
