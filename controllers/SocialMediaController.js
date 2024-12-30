@@ -4,7 +4,7 @@ const SocialmediaGets = async (req, res) => {
     try {
         const { filter } = req.query;
 
-        const findSocialMedia = await SocialMedia.find().select('-createdBy -updatedAt -__v -lastModifiedBy -accessToken -accessSecret');
+        const findSocialMedia = await SocialMedia.find({ userId: req.user._id }).select('-createdBy -updatedAt -__v -lastModifiedBy -accessToken -accessSecret');
 
         const includePosts = filter === 'posts';
 
