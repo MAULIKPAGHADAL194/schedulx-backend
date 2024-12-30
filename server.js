@@ -44,6 +44,7 @@ app.use(
     directives: {
       defaultSrc: ["'self'"], //? Allow resources from the same origin
       imgSrc: ["'self'", "https://schedulx-backend.onrender.com", "http://localhost:5173"],  // Allow images from backend
+      connectSrc: ["'self'", "https://schedulx-backend.onrender.com", "http://localhost:5173", "ws://localhost:5173"],
     },
   })
 );
@@ -54,13 +55,15 @@ app.use(
 app.use(cors({
   origin: [process.env.FRONTEND_URL],
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Specify allowed methods
+  allowedHeaders: ['Content-Type', 'Authorization'] // Specify allowed headers
 }));
 
 //! Rate limiting: Limit each IP to 100 requests per 15 minutes
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000, //? Time window in milliseconds (15 minutes)
-    max: 100, //? Maximum requests per IP
+    max: 300, //? Maximum requests per IP
   })
 );
 
