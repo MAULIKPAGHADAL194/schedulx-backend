@@ -67,7 +67,7 @@ const linkedinlogin = async (req, res) => {
     const tokenResponse = await axios.post('https://www.linkedin.com/oauth/v2/accessToken', qs.stringify({
       grant_type: 'authorization_code',
       code: req.query.code,
-      redirect_uri: 'http://localhost:5000/api/v1/linkedin/callback',
+      redirect_uri: 'https://schedulx-backend.onrender.com/api/v1/linkedin/callback',
       client_id: process.env.LINKEDINCLINTID,
       client_secret: process.env.LINKEDINCLINTSECRET
     }), {

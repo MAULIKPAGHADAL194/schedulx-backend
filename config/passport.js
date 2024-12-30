@@ -19,7 +19,7 @@ passport.use(
         {
             clientID: process.env.GOOGLECLINTID,
             clientSecret: process.env.GOOGLECLINTSECRET,
-            callbackURL: "http://localhost:5000/api/v1/auth/google/callback",
+            callbackURL: "https://schedulx-backend.onrender.com/api/v1/auth/google/callback",
             passReqToCallback: true,
         },
         (request, accessToken, refreshToken, profile, done) => {
@@ -34,7 +34,7 @@ passport.use(
         {
             clientID: process.env.APP_ID,
             clientSecret: process.env.APP_SECRET,
-            callbackURL: "http://localhost:5000/api/v1/facebook/callback",
+            callbackURL: "https://schedulx-backend.onrender.com/api/v1/facebook/callback",
             // scope: ["email", "user_posts", "user_photos", "user_videos", "user_likes", "publish_to_groups"],
         },
         (accessToken, refreshToken, profile, done) => {
@@ -48,7 +48,7 @@ passport.use(
 passport.use(new LinkedInStrategy({
     clientID: process.env.LINKEDINCLINTID,
     clientSecret: process.env.LINKEDINCLINTSECRET,
-    callbackURL: "http://localhost:5000/api/v1/linkedin/callback",
+    callbackURL: "https://schedulx-backend.onrender.com/api/v1/linkedin/callback",
     scope: ["openid", "profile", "email", "w_member_social"],
     state: true,
 },
@@ -62,7 +62,7 @@ passport.use(
         {
             consumerKey: process.env.TWITTERAPIKEY,
             consumerSecret: process.env.TWITTERAPISECRET,
-            callbackURL: "http://localhost:5000/api/v1/twitter/callback",
+            callbackURL: "https://schedulx-backend.onrender.com/api/v1/twitter/callback",
         },
         (accessToken, accessSecret, profile, done) => {
             console.log("accessToken", accessToken, "accessSecret", accessSecret);

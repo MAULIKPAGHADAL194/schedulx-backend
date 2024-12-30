@@ -43,7 +43,7 @@ app.use(
   helmet.contentSecurityPolicy({
     directives: {
       defaultSrc: ["'self'"], //? Allow resources from the same origin
-      imgSrc: ["'self'", "http://localhost:5000", "http://localhost:5173"],  // Allow images from backend
+      imgSrc: ["'self'", "https://schedulx-backend.onrender.com", "http://localhost:5173"],  // Allow images from backend
     },
   })
 );

@@ -7,7 +7,7 @@ const validateRequest = require("../middleware/validate-request.js");
 
 router.get('/', (req, res) => {
     const clientId = '77z2p7tuvpm43v';
-    const redirectUri = encodeURIComponent('http://localhost:5000/api/v1/linkedin/callback');
+    const redirectUri = encodeURIComponent('https://schedulx-backend.onrender.com/api/v1/linkedin/callback');
     const state = 'randomstring123'; // Generate securely in production
     const scope = 'openid,profile,email,w_member_social';
 
