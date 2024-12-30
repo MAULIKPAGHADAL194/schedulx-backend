@@ -442,31 +442,33 @@ async function twitterAnalytics(posts, socialMedia) {
             "user.fields": ["public_metrics", "description", "created_at", "profile_image_url", "location"]
         });
 
-        // Log user details
-        console.log("User Details:", {
-            username: userDetails.data.username,
-            metrics: {
-                followers: userDetails.data.public_metrics.followers_count,
-                following: userDetails.data.public_metrics.following_count,
-                tweets: userDetails.data.public_metrics.tweet_count,
-                listed: userDetails.data.public_metrics.listed_count
-            },
-            profileImage: userDetails.data.profile_image_url,
-            location: userDetails.data.location,
-            createdAt: userDetails.data.created_at
-        });
-
-        await User.findByIdAndUpdate(socialMedia.userId, {
-            twitter: {
-                followers: userDetails.data.public_metrics.followers_count,
-                following: userDetails.data.public_metrics.following_count,
-                tweets: userDetails.data.public_metrics.tweet_count,
-                listed: userDetails.data.public_metrics.listed_count,
+        if (userDetails.data) {
+            // Log user details
+            console.log("User Details:", {
+                username: userDetails.data.username,
+                metrics: {
+                    followers: userDetails.data.public_metrics.followers_count,
+                    following: userDetails.data.public_metrics.following_count,
+                    tweets: userDetails.data.public_metrics.tweet_count,
+                    listed: userDetails.data.public_metrics.listed_count
+                },
                 profileImage: userDetails.data.profile_image_url,
                 location: userDetails.data.location,
                 createdAt: userDetails.data.created_at
-            }
-        });
+            });
+
+            await User.findByIdAndUpdate(socialMedia.userId, {
+                twitter: {
+                    followers: userDetails.data.public_metrics.followers_count,
+                    following: userDetails.data.public_metrics.following_count,
+                    tweets: userDetails.data.public_metrics.tweet_count,
+                    listed: userDetails.data.public_metrics.listed_count,
+                    profileImage: userDetails.data.profile_image_url,
+                    location: userDetails.data.location,
+                    createdAt: userDetails.data.created_at
+                }
+            });
+        }
 
         // console.log(`[${getCurrentISTTime()}] Fetching user timeline...`);
         const allTweets = await twitterClient.v2.userTimeline(socialMedia.socialMediaID, {
