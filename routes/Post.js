@@ -36,7 +36,7 @@ function AddValidation(req, res, next) {
                 mediaUrls: Joi.array().items(Joi.string().required()).optional(),
             }).optional(),
             xtwitter: Joi.object({
-                text: Joi.string().max(280).optional(),
+                text: Joi.string().max(400).optional(),
                 socialMediaId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).message("Invalid socialMediaId format."),
                 hashtags: Joi.array().items(Joi.string().max(50)).optional(),
                 mentions: Joi.array().items(Joi.string().max(50)).optional(),
@@ -45,7 +45,7 @@ function AddValidation(req, res, next) {
                 firstComment: Joi.string().max(300).optional(),
             }).optional(),
             pinterest: Joi.object({
-                title: Joi.string().max(100).optional(),
+                title: Joi.string().max(400).optional(),
                 socialMediaId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).message("Invalid socialMediaId format."),
                 description: Joi.string().max(500).optional(),
                 mediaUrls: Joi.array().items(Joi.string().required()).optional(),
@@ -81,7 +81,7 @@ function UpdateValidation(req, res, next) {
                 firstComment: Joi.string().max(300).optional(),
             }).optional(),
             xtwitter: Joi.object({
-                text: Joi.string().max(280).optional(),
+                text: Joi.string().max(400).optional(),
                 socialMediaId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).message("Invalid socialMediaId format."),
                 hashtags: Joi.array().items(Joi.string().max(50)).optional(),
                 mentions: Joi.array().items(Joi.string().max(50)).optional(),
@@ -90,7 +90,7 @@ function UpdateValidation(req, res, next) {
                 firstComment: Joi.string().max(300).optional(),
             }).optional(),
             pinterest: Joi.object({
-                title: Joi.string().max(100).optional(),
+                title: Joi.string().max(400).optional(),
                 socialMediaId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).message("Invalid socialMediaId format."),
                 description: Joi.string().max(500).optional(),
                 mediaUrls: Joi.array().items(Joi.string()).optional(),
