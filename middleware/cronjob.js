@@ -79,8 +79,8 @@ cron.schedule('*/1 * * * *', async () => {
                             case 'xtwitter':
                                 if (post.platformSpecific.xtwitter?.socialMediaId?.toString() === socialMedia._id.toString()) {
                                     console.log("Calling processTwitterPost");
-                                    // platformPromises.push(processTwitterPost(post, socialMedia));
-                                    processTwitterPost(post, socialMedia);
+                                    platformPromises.push(processTwitterPost(post, socialMedia));
+                                    // processTwitterPost(post, socialMedia);
                                 }
                                 break;
                             case 'linkedin':
@@ -164,9 +164,18 @@ async function processTwitterPost(post, socialMedia) {
             });
         }
 
+        const hashtags = post.platformSpecific.xtwitter.hashtags || [];
+        const hashtagText = hashtags.map((tag) => `#${tag}`).join(' ');
+
+        const mentions = post.platformSpecific.xtwitter.mentions || [];
+        const mentionText = mentions.map((mention) => `@${mention}`).join(' ');
+
         // Create the tweet payload
+        // const tweetData = {
+        //     text: post.platformSpecific.xtwitter.text,
+        // };
         const tweetData = {
-            text: post.platformSpecific.xtwitter.text,
+            text: `${post.platformSpecific.xtwitter.text} ${hashtagText} ${mentionText}`.trim(),
         };
 
         if (mediaData) {
@@ -192,7 +201,9 @@ async function processTwitterPost(post, socialMedia) {
                 lastModifiedBy: post.createdBy,
                 'platformSpecific.xtwitter.postId': tweet.data.id,
                 'platformSpecific.xtwitter.mediaUrls': cloudinaryUrl ? [cloudinaryUrl] : [],
-                'platformSpecific.xtwitter.text': post.platformSpecific.xtwitter.text
+                'platformSpecific.xtwitter.text': post.platformSpecific.xtwitter.text,
+                'platformSpecific.xtwitter.hashtags': hashtags,
+                'platformSpecific.xtwitter.mentions': mentions
             }, { new: true });
 
             if (!twitterPostAdd) {
