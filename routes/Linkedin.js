@@ -1,10 +1,10 @@
 const router = require("express").Router();
 const Joi = require("joi");
 const passport = require("passport");
-const { linkedinlogin, linkedinAdd, linkedinPostDelete, linkedinUpdate } = require("../controllers/LinkedinController.js");
+const { linkedinlogin, linkedinAdd, linkedinPostDelete, linkedinUpdate, linkedinPost } = require("../controllers/LinkedinController.js");
 const { authMiddleware, logout } = require("../middleware/authMiddleware.js");
 const validateRequest = require("../middleware/validate-request.js");
-
+const upload = require("../config/multerConfig")
 router.get('/', (req, res) => {
     const clientId = '77z2p7tuvpm43v';
     const redirectUri = encodeURIComponent('https://schedulx-backend.onrender.com/api/v1/linkedin/callback');
@@ -32,6 +32,7 @@ router.post("/linkedin-add", authMiddleware,
 // router.put("/linkedin-update", authMiddleware, upload.single('file'), PostValidation, linkedinPostEdit);
 router.put("/linkedin-update", authMiddleware, UpdateValidation, linkedinUpdate);
 router.delete("/linkedin-delete/:postId", authMiddleware, DeleteValidation, linkedinPostDelete);
+router.post("/linkedin-post", authMiddleware, upload.single('file'), PostValidation, linkedinPost);
 
 function AddValidation(req, res, next) {
     const schema = Joi.object({
@@ -65,6 +66,14 @@ function DeleteValidation(req, res, next) {
     const schema = Joi.object({
         userId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).message("Invalid userId format."),
         socialMediaId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).message("Invalid socialMediaId format."),
+    });
+    validateRequest(req, res, next, schema);
+}
+
+
+function PostValidation(req, res, next) {
+    const schema = Joi.object({
+        text: Joi.string().min(1).max(100).optional(),
     });
     validateRequest(req, res, next, schema);
 }

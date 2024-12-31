@@ -11,13 +11,12 @@ const linkedinAdd = async (req, res) => {
     const findSocialMediaAccount = await SocialMedia.findOne({
       platformName: "linkedin",
       userId: req.user._id,
-      socialMediaID: sub,
-
     });
     if (findSocialMediaAccount) {
-
+      findSocialMediaAccount.socialMediaID = sub;
       findSocialMediaAccount.accessToken = accessToken;
       findSocialMediaAccount.platformUserName = platformUserName;
+      findSocialMediaAccount.socialMediaEmail = socialMediaEmail;
 
       await findSocialMediaAccount.save();
 
@@ -104,7 +103,7 @@ const linkedinlogin = async (req, res) => {
 const linkedinPost = async (req, res) => {
   try {
 
-    const findSocialMediaAccount = await Socialmedia.findOne({
+    const findSocialMediaAccount = await SocialMedia.findOne({
       userId: req.user._id,
       platformName: "linkedin",
     });
@@ -207,19 +206,19 @@ const linkedinPost = async (req, res) => {
     // console.log('Post body:', postBody, response.data.id);
 
     if (response.data && response.data.id) {
-      const linkedinPostAdd = new Post({
-        userId: req.user._id,
-        platformSpecific: {
-          linkedin: {
-            socialMediaId: findSocialMediaAccount._id,
-            postId: response.data.id,
-          }
-        },
-        createdBy: req.user.name,
-      });
+      // const linkedinPostAdd = new Post({
+      //   userId: req.user._id,
+      //   platformSpecific: {
+      //     linkedin: {
+      //       socialMediaId: findSocialMediaAccount._id,
+      //       postId: response.data.id,
+      //     }
+      //   },
+      //   createdBy: req.user.name,
+      // });
 
-      await linkedinPostAdd.save();
-      return res.status(201).json({ success: true, message: "post successfully uploaded", data: linkedinPostAdd });
+      // await linkedinPostAdd.save();
+      return res.status(201).json({ success: true, message: "post successfully uploaded" });
     }
     return res.status(404).json({ success: false, message: "Post data not insert properly" });
 

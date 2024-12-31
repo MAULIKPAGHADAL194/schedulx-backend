@@ -23,12 +23,9 @@ router.get('/', passport.authenticate('facebook'));
 
 //! Auth Callback 
 router.get('/callback',
-  // passport.authenticate('facebook', {
-  //   successRedirect: '/api/v1/facebook/success',
-  //   failureRedirect: '/api/v1/facebook/failure'
-  // }));
   passport.authenticate('facebook', { failureRedirect: process.env.FRONTEND_URL }),
   (req, res) => {
+    console.log("req.user", req.user);
     // Redirect to the frontend with user data
     const user = encodeURIComponent(JSON.stringify(req.user));
     res.redirect(`${process.env.RETURN_URL}?facebook=${user}`);
@@ -63,7 +60,7 @@ function AddValidation(req, res, next) {
     platformUserName: Joi.string().required(),
     socialMediaID: Joi.string().required(),
     displayName: Joi.string().required(),
-    socialMediaEmail: Joi.string().email().required(),
+    socialMediaEmail: Joi.string().email().optional(),
   });
   validateRequest(req, res, next, schema);
 }

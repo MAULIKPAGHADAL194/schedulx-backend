@@ -85,6 +85,7 @@ cron.schedule('*/1 * * * *', async () => {
                                 break;
                             case 'linkedin':
                                 if (post.platformSpecific.linkedin?.socialMediaId?.toString() === socialMedia._id.toString()) {
+                                    console.log("Calling processLinkedinPost");
                                     platformPromises.push(processLinkedinPost(post, socialMedia));
                                 }
                                 break;

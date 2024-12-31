@@ -138,6 +138,7 @@ const postSchema = new mongoose.Schema(
             type: Date,
             required: true,
 
+
         },
         error: {
             type: String,
