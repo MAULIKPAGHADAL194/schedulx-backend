@@ -63,7 +63,7 @@ cron.schedule('*/1 * * * *', async () => {
                     });
 
                     if (!socialMediaAccounts || socialMediaAccounts.length === 0) {
-                        console.error(`No social media accounts found for post ${post._id}`);
+                        console.log(`No social media accounts found for post ${post._id}`);
                         continue;
                     }
 
@@ -99,7 +99,8 @@ cron.schedule('*/1 * * * *', async () => {
                     await Promise.all(platformPromises);
                 }
             } catch (postError) {
-                console.error(`Error processing post ${post._id}:`, postError.message);
+                console.log(`Error processing post ${post._id}:`);
+                console.log(`Error processing post ${post._id}:`, postError.message);
 
                 // Update post status to failed
                 await Post.findByIdAndUpdate(post._id, {
@@ -110,7 +111,7 @@ cron.schedule('*/1 * * * *', async () => {
         }
 
     } catch (error) {
-        console.error('Critical error in cron job:', error.message);
+        console.log('Critical error in cron job:', error.message);
     } finally {
         isCronRunning = false;
         // console.log('Cron job completed at:', getCurrentISTTime());
@@ -157,7 +158,7 @@ async function processTwitterPost(post, socialMedia) {
 
             fs.unlink(mediaPath, (err) => {
                 if (err) {
-                    console.error(`Error removing file: ${err}`);
+                    console.log(`Error removing file: ${err}`);
                     return;
                 }
 
@@ -228,11 +229,11 @@ async function processTwitterPost(post, socialMedia) {
             try {
                 await fs.unlink(post.platformSpecific.xtwitter.mediaUrls[0]);
             } catch (unlinkError) {
-                console.error('Error deleting local file:', unlinkError);
+                console.log('Error deleting local file:', unlinkError);
             }
         }
 
-        console.error('Twitter post processing error:', {
+        console.log('Twitter post processing error:', {
             postId: post._id,
             error: error.message,
             stack: error.stack
@@ -242,18 +243,19 @@ async function processTwitterPost(post, socialMedia) {
 
 async function processLinkedinPost(post, socialMedia) {
     try {
-        // const userInfoResponse = await axios.get('https://api.linkedin.com/v2/userinfo', {
-        //     headers: {
-        //         Authorization: `Bearer ${socialMedia.accessToken}`
-        //     }
-        // });
+        const userInfoResponse = await axios.get('https://api.linkedin.com/v2/userinfo', {
+            headers: {
+                Authorization: `Bearer ${socialMedia.accessToken}`,
+                'X-Restli-Protocol-Version': '2.0.0'
+            }
+        });
 
-        // if (userInfoResponse) {
-        //     console.log("userProfile", userInfoResponse.data);
-        // }
-        // else {
-        //     console.log("userProfile not found ");
-        // }
+        if (userInfoResponse) {
+            console.log("userProfile", userInfoResponse.data);
+        }
+        else {
+            console.log("userProfile not found ");
+        }
 
         const headers = {
             Authorization: `Bearer ${socialMedia.accessToken}`,
@@ -263,12 +265,16 @@ async function processLinkedinPost(post, socialMedia) {
 
         let mediaAsset = null;
         let mediaType = null;
+        let cloudinaryUrl;
 
         // Handle media upload if mediaType and filePath are provided
-        if (post.platformSpecific.linkedin.mediaUrls) {
+        if (post.platformSpecific.linkedin?.mediaUrls?.length > 0) {
             const filePath = post.platformSpecific.linkedin.mediaUrls[0];
-            mediaType = post.platformSpecific.linkedin.mediaUrls[0].split("/")[0];
+            // Fix: Get mediaType from the file mimetype
+            const fileExtension = path.extname(filePath).toLowerCase();
+            mediaType = fileExtension === '.mp4' ? 'video' : 'image';
 
+            // Upload to Cloudinary first
             const cloudinaryResult = await new Promise((resolve, reject) => {
                 cloudinary.uploader.upload(filePath, (error, result) => {
                     if (error) reject(error);
@@ -284,7 +290,7 @@ async function processLinkedinPost(post, socialMedia) {
                 {
                     registerUploadRequest: {
                         recipes: [`urn:li:digitalmediaRecipe:${mediaType === 'image' ? 'feedshare-image' : 'feedshare-video'}`],
-                        owner: `urn:li:person:${socialMedia.socialMediaID}`, // Replace with your LinkedIn Person URN
+                        owner: `urn:li:person:${socialMedia.socialMediaID}`,
                         serviceRelationships: [
                             { relationshipType: 'OWNER', identifier: 'urn:li:userGeneratedContent' },
                         ],
@@ -292,6 +298,7 @@ async function processLinkedinPost(post, socialMedia) {
                 },
                 { headers }
             );
+
 
             const uploadUrl = registerResponse.data.value.uploadMechanism[
                 'com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'
@@ -307,23 +314,14 @@ async function processLinkedinPost(post, socialMedia) {
             // Step 2: Upload the media file
             const file = await fs.readFile(filePath);
 
-            // Fix 3: Add proper error handling for media upload
-            try {
-                await axios.put(uploadUrl, file, {
-                    headers: { 'Content-Type': 'application/octet-stream' },
-                });
+            await axios.put(uploadUrl, file, {
+                headers: { 'Content-Type': 'application/octet-stream' },
+            });
 
-                fs.unlink(filePath, (err) => {
-                    if (err) {
-                        console.error(`Error removing file: ${err}`);
-                        return;
-                    }
-
-                    console.log(`File ${filePath} has been successfully removed.`);
-                });
-            } catch (err) {
-                throw new Error(`Error uploading media to LinkedIn: ${err.message}`);
-            }
+            // Clean up local file
+            await fs.unlink(filePath).catch(err =>
+                console.log(`Error removing file ${filePath}:`, err)
+            );
         }
 
         // Step 3: Create the post
@@ -357,7 +355,7 @@ async function processLinkedinPost(post, socialMedia) {
                 status: 'posted',
                 lastModifiedBy: post.createdBy,
                 'platformSpecific.linkedin.postId': response.data.id,
-                // 'platformSpecific.linkedin.mediaUrls': mediaAsset ? [mediaAsset] : [],
+                'platformSpecific.linkedin.mediaUrls': cloudinaryUrl ? [cloudinaryUrl] : [],
                 'platformSpecific.linkedin.content': post.platformSpecific.linkedin.content
             }, { new: true });
 
@@ -367,7 +365,19 @@ async function processLinkedinPost(post, socialMedia) {
             console.log({ success: false, message: "Failed to post linkedin post" });
         }
     } catch (error) {
-        console.log({ success: false, message: error.message, post: post._id });
+        console.error('LinkedIn post processing error:', {
+            postId: post._id,
+            error: error.message,
+            stack: error.stack
+        });
+
+        // Clean up media file if it exists and failed
+        if (post.platformSpecific.linkedin?.mediaUrls?.[0]) {
+            await fs.unlink(post.platformSpecific.linkedin.mediaUrls[0])
+                .catch(err => console.log('Error deleting local file:', err));
+        }
+
+        throw error;
     }
 };
 
@@ -405,7 +415,7 @@ cron.schedule('*/15 * * * *', async () => {
                 const socialMedia = await SocialMedia.findById(socialMediaId);
 
                 if (!socialMedia) {
-                    console.error(`Social media not found for ID ${socialMediaId}`);
+                    console.log(`Social media not found for ID ${socialMediaId}`);
                     continue;
                 }
 
@@ -414,11 +424,11 @@ cron.schedule('*/15 * * * *', async () => {
                     await twitterAnalytics(postsBySocialMedia[socialMediaId], socialMedia);
                 }
             } catch (error) {
-                console.error(`Error processing social media ${socialMediaId}:`, error.message);
+                console.log(`Error processing social media ${socialMediaId}:`, error.message);
             }
         }
     } catch (error) {
-        console.error('Critical error in cron job:', error.message);
+        console.log('Critical error in cron job:', error.message);
     } finally {
         isCronRunning2 = false;
     }
@@ -572,6 +582,6 @@ async function twitterAnalytics(posts, socialMedia) {
         //     }
         // }
     } catch (error) {
-        console.error(`[${getCurrentISTTime()}] Error handling analytics:`, error.message);
+        console.log(`[${getCurrentISTTime()}] Error handling analytics:`, error.message, error);
     }
 }
