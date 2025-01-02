@@ -12,7 +12,6 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 router.post('/generate-response', authMiddleware, AddOpenAiValidation, async (req, res) => {
     try {
         const { input } = req.body;
-        console.log("input", input);
 
         // const response = await openai.chat.completions.create({
         //     // model: "gpt-3.5-turbo",

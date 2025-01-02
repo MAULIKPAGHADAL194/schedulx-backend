@@ -123,7 +123,8 @@ const PostsGet = async (req, res) => {
                     scheduledTime: post.scheduledTime,
                     createdAt: post.createdAt,
                     platformSpecific: { [platform]: data },
-                    analytics: postAnalytics
+                    analytics: postAnalytics,
+                    error: post.error
                 });
             });
             return acc;

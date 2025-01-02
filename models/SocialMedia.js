@@ -21,7 +21,6 @@ const socialMediaSchema = new mongoose.Schema(
         },
         platformUserName: {
             type: String,
-            unique: true,
         },
         userId: {
             type: mongoose.Schema.Types.ObjectId,

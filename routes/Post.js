@@ -62,7 +62,7 @@ function AddValidation(req, res, next) {
             }).optional(),
         }).optional(),
         status: Joi.string().valid("scheduled", "draft").default("scheduled"),
-        scheduledTime: Joi.date().required(),
+        scheduledTime: Joi.date().optional(),
     });
     validateRequest(req, res, next, schema);
 }

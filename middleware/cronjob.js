@@ -156,14 +156,17 @@ async function processTwitterPost(post, socialMedia) {
                 mimeType: mimeType
             });
 
-            fs.unlink(mediaPath, (err) => {
-                if (err) {
-                    console.log(`Error removing file: ${err}`);
-                    return;
-                }
+            const linkedInMediaUrl = post.platformSpecific.linkedin?.mediaUrls?.[0];
+            if (linkedInMediaUrl !== post.platformSpecific.xtwitter.mediaUrls[0]) {
+                fs.unlink(mediaPath, (err) => {
+                    if (err) {
+                        console.log(`Error removing file: ${err}`);
+                        return;
+                    }
 
-                console.log(`File ${mediaPath} has been successfully removed.`);
-            });
+                    console.log(`File ${mediaPath} has been successfully removed.`);
+                });
+            }
         }
 
         const hashtags = post.platformSpecific.xtwitter.hashtags || [];
@@ -227,7 +230,10 @@ async function processTwitterPost(post, socialMedia) {
     } catch (error) {
         if (post.platformSpecific.xtwitter?.mediaUrls?.[0]) {
             try {
-                await fs.unlink(post.platformSpecific.xtwitter.mediaUrls[0]);
+                const linkedInMediaUrl = post.platformSpecific.linkedin?.mediaUrls?.[0];
+                if (linkedInMediaUrl !== post.platformSpecific.xtwitter.mediaUrls[0]) {
+                    await fs.unlink(post.platformSpecific.xtwitter.mediaUrls[0]);
+                }
             } catch (unlinkError) {
                 console.log('Error deleting local file:', unlinkError);
             }

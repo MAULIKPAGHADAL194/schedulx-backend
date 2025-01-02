@@ -61,7 +61,8 @@ passport.use(
         {
             consumerKey: process.env.TWITTERAPIKEY,
             consumerSecret: process.env.TWITTERAPISECRET,
-            callbackURL: "https://schedulx-backend.onrender.com/api/v1/twitter/callback",
+            callbackURL: "http://localhost:5000/api/v1/twitter/callback",
+            // callbackURL: "https://schedulx-backend.onrender.com/api/v1/twitter/callback",
         },
         (accessToken, accessSecret, profile, done) => {
             console.log("accessToken", accessToken, "accessSecret", accessSecret);

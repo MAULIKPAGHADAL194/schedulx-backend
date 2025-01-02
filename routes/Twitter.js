@@ -86,6 +86,7 @@ function DeleteValidation(req, res, next) {
 function PostValidation(req, res, next) {
   const schema = Joi.object({
     tweetText: Joi.string().min(1).max(100).required(),
+
   });
   validateRequest(req, res, next, schema);
 }

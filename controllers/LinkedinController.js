@@ -12,6 +12,7 @@ const linkedinAdd = async (req, res) => {
       platformName: "linkedin",
       userId: req.user._id,
     });
+
     if (findSocialMediaAccount) {
       findSocialMediaAccount.socialMediaID = sub;
       findSocialMediaAccount.accessToken = accessToken;

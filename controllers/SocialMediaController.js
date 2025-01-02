@@ -90,30 +90,30 @@ const SocialmediaDelete = async (req, res) => {
             return res.status(400).json({ success: false, message: "The Social Media ID data does not exist." });
         }
 
-        const objectId = new mongoose.Types.ObjectId(id);
+        // const objectId = new mongoose.Types.ObjectId(id);
 
-        const data = await Post.find(
-            {
-                $or: [
-                    { "platformSpecific.xtwitter.socialMediaId": objectId },
-                    { "platformSpecific.pinterest.socialMediaId": objectId },
-                    { "platformSpecific.linkedin.socialMediaId": objectId }
-                ]
-            }
-        )
+        // const data = await Post.find(
+        //     {
+        //         $or: [
+        //             { "platformSpecific.xtwitter.socialMediaId": objectId },
+        //             { "platformSpecific.pinterest.socialMediaId": objectId },
+        //             { "platformSpecific.linkedin.socialMediaId": objectId }
+        //         ]
+        //     }
+        // )
 
-        console.log(data);
+        // console.log(data);
 
-        const deletepost = await Post.deleteMany(
-            {
-                $or: [
-                    { "platformSpecific.xtwitter.socialMediaId": objectId },
-                    { "platformSpecific.pinterest.socialMediaId": objectId },
-                    { "platformSpecific.linkedin.socialMediaId": objectId }
-                ]
-            }
-        )
-        console.log(deletepost);
+        // const deletepost = await Post.deleteMany(
+        //     {
+        //         $or: [
+        //             { "platformSpecific.xtwitter.socialMediaId": objectId },
+        //             { "platformSpecific.pinterest.socialMediaId": objectId },
+        //             { "platformSpecific.linkedin.socialMediaId": objectId }
+        //         ]
+        //     }
+        // )
+        // console.log(deletepost);
 
         await SocialMedia.findByIdAndDelete(id);
         return res.status(200).json({ success: true, message: `This ID ${findSocialMedia._id} Platform Name ${findSocialMedia.platformName} has been deleted successfully From ${findSocialMedia.userId} Account` });
