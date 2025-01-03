@@ -5,6 +5,7 @@ const fs = require('fs').promises;
 const axios = require('axios');
 const { v2: cloudinary } = require("cloudinary");
 const path = require('path');
+const puppeteer = require('puppeteer');
 
 //! Cloudinary configuration
 cloudinary.config({
@@ -358,7 +359,7 @@ async function processLinkedinPost(post, socialMedia) {
 let isCronRunning2 = false;
 
 // Run every 15 minutes
-cron.schedule('*/15 * * * *', async () => {
+cron.schedule('*/20 * * * *', async () => {
     try {
         if (isCronRunning2) {
             console.log('Previous cron job still running, skipping...');
@@ -458,8 +459,7 @@ async function twitterAnalytics(posts, socialMedia) {
         // console.log(`[${getCurrentISTTime()}] Fetching user timeline...`);
         const allTweets = await twitterClient.v2.userTimeline(socialMedia.socialMediaID, {
             max_results: 100,
-            "tweet.fields": ["public_metrics", "created_at"],
-            exclude: ['retweets', 'replies']
+            "tweet.fields": ["public_metrics", "created_at"]
         });
 
         console.log("allTweets", allTweets.data.data);
@@ -482,12 +482,6 @@ async function twitterAnalytics(posts, socialMedia) {
                 }
             });
         }
-
-        // console.log({
-        //     success: true,
-        //     timestamp: getCurrentISTTime(),
-        //     allTweets: JSON.stringify(allTweetsAnalytics)
-        // });
 
         // Match tweets with posts and update analytics
         for (const post of posts) {

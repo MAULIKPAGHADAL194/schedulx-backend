@@ -2,6 +2,7 @@ const { Post, SocialMedia, User, Analytics } = require("../models/index.js");
 const { checkFileExists } = require('../utils/fileUtils');
 const path = require('path');
 const axios = require('axios');
+const { TwitterApi } = require("twitter-api-v2");
 
 const PostAdd = async (req, res) => {
     try {
@@ -246,14 +247,17 @@ const PostDelete = async (req, res) => {
 
         // Handle Twitter deletion
         if (PostDetail.status === 'posted' && socialMediaAccounts.some(account => account.platformName === "xtwitter")) {
-            const client = new TwitterApi({
-                appKey: process.env.TWITTERAPIKEY,
-                appSecret: process.env.TWITTERAPISECRET,
-                accessToken: socialMediaAccounts[0].accessToken,
-                accessSecret: socialMediaAccounts[0].accessSecret
-            }).readWrite;
+            const twitterAccount = socialMediaAccounts.find(account => account.platformName === "xtwitter");
+            if (twitterAccount) {
+                const client = new TwitterApi({
+                    appKey: process.env.TWITTERAPIKEY,
+                    appSecret: process.env.TWITTERAPISECRET,
+                    accessToken: twitterAccount.accessToken,
+                    accessSecret: twitterAccount.accessSecret
+                });
 
-            await client.v2.deleteTweet(PostDetail.platformSpecific.xtwitter.postId);
+                await client.v2.deleteTweet(PostDetail.platformSpecific.xtwitter.postId);
+            }
         }
 
         // Delete the post if it's a draft or if no social media accounts are linked

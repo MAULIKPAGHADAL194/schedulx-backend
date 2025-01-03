@@ -6,7 +6,7 @@ const { User, SocialMedia, Post } = require("../models/index.js");
 const twitterAdd = async (req, res) => {
     try {
 
-        const { displayName, username, accessSecret, id, accessToken, socialMediaID } = req.body;
+        const { displayName, platformUserName, username, accessSecret, id, accessToken, socialMediaID } = req.body;
 
         const findSocialMediaAccount = await SocialMedia.findOne({
             platformName: "xtwitter",
@@ -17,7 +17,7 @@ const twitterAdd = async (req, res) => {
         if (findSocialMediaAccount) {
 
             findSocialMediaAccount.accessToken = accessToken;
-            findSocialMediaAccount.platformUserName = displayName;
+            findSocialMediaAccount.platformUserName = platformUserName;
             findSocialMediaAccount.accessSecret = accessSecret;
 
             await findSocialMediaAccount.save();
@@ -36,7 +36,7 @@ const twitterAdd = async (req, res) => {
         const socialmediaAccountAdd = new SocialMedia({
             accessToken: accessToken,
             platformName: "xtwitter",
-            platformUserName: displayName,
+            platformUserName: platformUserName,
             userId: req.user._id,
             socialMediaID: socialMediaID, //? insert sub id
             createdBy: displayName,
