@@ -69,7 +69,7 @@ function AddValidation(req, res, next) {
 
 function UpdateValidation(req, res, next) {
     const schema = Joi.object({
-        userId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).message("Invalid userId format."),
+        userId: Joi.string().optional().regex(/^[0-9a-fA-F]{24}$/).message("Invalid userId format."),
         platformSpecific: Joi.object({
             instagram: Joi.object({
                 postType: Joi.string().valid("post", "reel", "story").optional(),

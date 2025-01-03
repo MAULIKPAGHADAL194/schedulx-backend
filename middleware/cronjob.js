@@ -69,30 +69,33 @@ cron.schedule('*/1 * * * *', async () => {
 
                     // Process each social media account
                     for (const socialMedia of socialMediaAccounts) {
-                        // console.log("Processing social media:", {
-                        //     platform: socialMedia.platformName,
-                        //     accountId: socialMedia._id.toString(),
-                        //     postPlatformId: post.platformSpecific.xtwitter?.socialMediaId?.toString()
-                        // });
-
-                        switch (socialMedia.platformName.toLowerCase()) {
-                            case 'xtwitter':
-                                if (post.platformSpecific.xtwitter?.socialMediaId?.toString() === socialMedia._id.toString()) {
-                                    console.log("Calling processTwitterPost");
-                                    platformPromises.push(processTwitterPost(post, socialMedia));
-                                    // processTwitterPost(post, socialMedia);
-                                }
-                                break;
-                            case 'linkedin':
-                                if (post.platformSpecific.linkedin?.socialMediaId?.toString() === socialMedia._id.toString()) {
-                                    console.log("Calling processLinkedinPost");
-                                    platformPromises.push(processLinkedinPost(post, socialMedia));
-                                }
-                                break;
-                            // Add other platforms here
-                            default:
-                            // console.warn(`Unsupported platform: ${socialMedia.platformName}`);
+                        const mediaExists = post.platformSpecific.xtwitter?.mediaUrls?.length > 0 && await fs.access(post.platformSpecific.xtwitter.mediaUrls[0]).then(() => true).catch(() => false);
+                        // Check if media exists before processing
+                        if (socialMedia.platformName.toLowerCase() === 'xtwitter' && mediaExists) {
+                            console.log("Calling processTwitterPost");
+                            platformPromises.push(processTwitterPost(post, socialMedia));
+                        } else if (socialMedia.platformName.toLowerCase() === 'linkedin') {
+                            console.log("Calling processLinkedinPost");
+                            platformPromises.push(processLinkedinPost(post, socialMedia));
                         }
+                        // switch (socialMedia.platformName.toLowerCase()) {
+                        //     case 'xtwitter':
+                        //         if (post.platformSpecific.xtwitter?.socialMediaId?.toString() === socialMedia._id.toString()) {
+                        //             console.log("Calling processTwitterPost");
+                        //             platformPromises.push(processTwitterPost(post, socialMedia));
+                        //             // processTwitterPost(post, socialMedia);
+                        //         }
+                        //         break;
+                        //     case 'linkedin':
+                        //         if (post.platformSpecific.linkedin?.socialMediaId?.toString() === socialMedia._id.toString()) {
+                        //             console.log("Calling processLinkedinPost");
+                        //             platformPromises.push(processLinkedinPost(post, socialMedia));
+                        //         }
+                        //         break;
+                        //     // Add other platforms here
+                        //     default:
+                        //     // console.warn(`Unsupported platform: ${socialMedia.platformName}`);
+                        // }
                     }
 
                     // Wait for all platform posts to complete
@@ -155,18 +158,6 @@ async function processTwitterPost(post, socialMedia) {
                 type: mimeType,
                 mimeType: mimeType
             });
-
-            const linkedInMediaUrl = post.platformSpecific.linkedin?.mediaUrls?.[0];
-            if (linkedInMediaUrl !== post.platformSpecific.xtwitter.mediaUrls[0]) {
-                fs.unlink(mediaPath, (err) => {
-                    if (err) {
-                        console.log(`Error removing file: ${err}`);
-                        return;
-                    }
-
-                    console.log(`File ${mediaPath} has been successfully removed.`);
-                });
-            }
         }
 
         const hashtags = post.platformSpecific.xtwitter.hashtags || [];
@@ -228,22 +219,11 @@ async function processTwitterPost(post, socialMedia) {
         }
 
     } catch (error) {
-        // if (post.platformSpecific.xtwitter?.mediaUrls?.[0]) {
-        //     try {
-        //         const linkedInMediaUrl = post.platformSpecific.linkedin?.mediaUrls?.[0];
-        //         if (linkedInMediaUrl !== post.platformSpecific.xtwitter.mediaUrls[0]) {
-        //             await fs.unlink(post.platformSpecific.xtwitter.mediaUrls[0]);
-        //         }
-        //     } catch (unlinkError) {
-        //         console.log('Error deleting local file:', unlinkError);
-        //     }
-        // }
-
-        // console.log('Twitter post processing error:', {
-        //     postId: post._id,
-        //     error: error.message,
-        //     stack: error.stack
-        // });
+        console.log('Twitter post processing error:', {
+            postId: post._id,
+            error: error.message,
+            stack: error.stack
+        });
     }
 }
 
@@ -256,12 +236,12 @@ async function processLinkedinPost(post, socialMedia) {
             }
         });
 
-        if (userInfoResponse) {
-            console.log("userProfile", userInfoResponse.data);
-        }
-        else {
-            console.log("userProfile not found ");
-        }
+        // if (userInfoResponse) {
+        //     console.log("userProfile", userInfoResponse.data);
+        // }
+        // else {
+        //     console.log("userProfile not found ");
+        // }
 
         const headers = {
             Authorization: `Bearer ${socialMedia.accessToken}`,
@@ -324,18 +304,6 @@ async function processLinkedinPost(post, socialMedia) {
             await axios.put(uploadUrl, file, {
                 headers: { 'Content-Type': 'application/octet-stream' },
             });
-
-            const xtwitterInMediaUrl = post.platformSpecific.xtwitter?.mediaUrls?.[0];
-            if (xtwitterInMediaUrl !== post.platformSpecific.linkedin.mediaUrls[0]) {
-                fs.unlink(filePath, (err) => {
-                    if (err) {
-                        console.log(`Error removing file: ${err}`);
-                        return;
-                    }
-
-                    console.log(`File ${filePath} has been successfully removed.`);
-                });
-            }
         }
 
         // Step 3: Create the post
@@ -379,17 +347,11 @@ async function processLinkedinPost(post, socialMedia) {
             console.log({ success: false, message: "Failed to post linkedin post" });
         }
     } catch (error) {
-        // console.error('LinkedIn post processing error:', {
-        //     postId: post._id,
-        //     error: error.message,
-        //     stack: error.stack
-        // });
-
-        // Clean up media file if it exists and failed
-        // if (post.platformSpecific.linkedin?.mediaUrls?.[0]) {
-        //     await fs.unlink(post.platformSpecific.linkedin.mediaUrls[0])
-        //         .catch(err => console.log('Error deleting local file:', err));
-        // }
+        console.error('LinkedIn post processing error:', {
+            postId: post._id,
+            error: error.message,
+            stack: error.stack
+        });
     }
 };
 
@@ -559,41 +521,26 @@ async function twitterAnalytics(posts, socialMedia) {
             }
         }
 
-        // for (const tweetData of allTweetsAnalytics) {
-        //     if (tweetData) {
-        //         // console.log("tweetData", tweetData);
-        //         const metrics = tweetData.metrics;
-        //         const totalEngagements = metrics.likes + metrics.replies +
-        //             metrics.retweets + metrics.quotes;
-        //         for (const post of posts) {
-        //             const existingAnalytics = await Analytics.findOne({
-        //                 postId: post._id,
-        //             });
-
-        //             let analyticsData;
-        //             if (existingAnalytics) {
-        //                 // Update existing analytics
-        //                 analyticsData = await Analytics.findByIdAndUpdate(
-        //                     existingAnalytics._id,
-        //                     {
-        //                         like: metrics.likes,
-        //                         comment: metrics.replies,
-        //                         share: metrics.retweets,
-        //                         impressions: metrics.impressions,
-        //                         engagements: totalEngagements
-        //                     },
-        //                     { new: true }
-        //                 );
-        //             }
-
-        //             // console.log({
-        //             //     success: true,
-        //             //     data: analyticsData
-        //             // });
-        //         }
-        //     }
-        // }
     } catch (error) {
         console.log(`[${getCurrentISTTime()}] Error handling analytics:`, error.message, error);
     }
 }
+
+let isCronRunning3 = false;
+
+// Run every minute
+// cron.schedule('*/2 * * * *', async () => {
+//     try {
+//         if (isCronRunning3) {
+//             console.log('Previous cron job still running, skipping...');
+//             return;
+//         }
+
+//         isCronRunning3 = true;
+
+//     } catch (error) {
+//         console.log('Critical error in cron job:', error.message);
+//     } finally {
+//         isCronRunning3 = false;
+//     }
+// });
