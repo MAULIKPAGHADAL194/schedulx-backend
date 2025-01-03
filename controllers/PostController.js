@@ -42,13 +42,42 @@ const PostAdd = async (req, res) => {
             }
         }
 
-        const detail = await Post.create({ ...req.body, createdBy: req.user.name });
+        const createdPosts = [];
 
-        global.io.emit('notification', {
-            message: `${req.user.name} has created a new post`,
+        // Post to LinkedIn if data exists
+        if (platformSpecific.linkedin) {
+            const linkedinPost = {
+                userId: userId, // Include userId here
+                platformSpecific: { linkedin: platformSpecific.linkedin }, // Include platformSpecific data
+                createdBy: req.user.name,
+                status,
+                scheduledTime,
+            };
+            const linkedinDetail = await Post.create(linkedinPost);
+            createdPosts.push(linkedinDetail);
+        }
+
+        // Post to Twitter if data exists
+        if (platformSpecific.xtwitter) {
+            const twitterPost = {
+                userId: userId, // Include userId here
+                platformSpecific: { xtwitter: platformSpecific.xtwitter }, // Include platformSpecific data
+                createdBy: req.user.name,
+                status,
+                scheduledTime,
+            };
+            const twitterDetail = await Post.create(twitterPost);
+            createdPosts.push(twitterDetail);
+        }
+
+        // Emit notification for each created post
+        createdPosts.forEach(post => {
+            global.io.emit('notification', {
+                message: `${req.user.name} has created a new post on ${post.platform}`,
+            });
         });
 
-        return res.status(200).json({ success: true, data: detail });
+        return res.status(200).json({ success: true, data: createdPosts });
     } catch (error) {
         console.error(error);
         return res.status(500).json({ success: false, error: error.message });
@@ -225,14 +254,245 @@ const PostUpdate = async (req, res) => {
     }
 };
 
+// const PostDelete = async (req, res) => {
+//     try {
+//         let { id } = req.params
+
+//         const PostDetail = await Post.findById(id);
+
+//         if (!PostDetail) {
+//             return res.status(404).json({ success: false, message: "Post Data not Found!" });
+//         }
+
+//         const user = await User.findById(PostDetail.userId);
+
+//         const socialMediaAccounts = await SocialMedia.find({
+//             $or: [
+//                 ...(PostDetail.platformSpecific.instagram?.socialMediaId ? [{ _id: PostDetail.platformSpecific.instagram.socialMediaId }] : []),
+//                 ...(PostDetail.platformSpecific.xtwitter?.socialMediaId ? [{ _id: PostDetail.platformSpecific.xtwitter.socialMediaId }] : []),
+//                 ...(PostDetail.platformSpecific.pinterest?.socialMediaId ? [{ _id: PostDetail.platformSpecific.pinterest.socialMediaId }] : []),
+//                 ...(PostDetail.platformSpecific.linkedin?.socialMediaId ? [{ _id: PostDetail.platformSpecific.linkedin.socialMediaId }] : [])
+//             ]
+//         });
+
+//         if (!user || !socialMediaAccounts) {
+//             return res.status(404).json({ success: false, message: "User or social media account not found" });
+//         }
+
+//         if (PostDetail.status === 'posted' && socialMediaAccounts.platformName === "linkedin") {
+//             const headers = {
+//                 Authorization: `Bearer ${socialMediaAccounts.accessToken}`
+//             }
+
+//             await axios.delete(`${process.env.LINKEDINAPI_BASE_URL}/ugcPosts/${PostDetail.platformSpecific.linkedin.postId}`, { headers });
+
+//             if (PostDetail.platformSpecific.xtwitter || PostDetail.platformSpecific.facebook || PostDetail.platformSpecific.instagram || PostDetail.platformSpecific.pinterest) {
+//                 // Update post to remove Twitter data while keeping other platforms
+//                 const updatedPost = await Post.findByIdAndUpdate(
+//                     postId,
+//                     {
+//                         $unset: { 'platformSpecific.linkedin': 1 },
+//                         $set: { 'platformSpecific': PostDetail.platformSpecific.filter(p => p !== 'linkedin') }
+//                     },
+//                     { new: true }
+//                 );
+
+//                 global.io.emit('notification', {
+//                     message: `${name} has deleted a post`,
+//                 });
+
+//                 return res.status(200).json({
+//                     success: true,
+//                     message: "Linkedin content removed from multi-platform post",
+//                     data: updatedPost,
+//                 });
+//             }
+
+//             const deletedPost = await Post.findByIdAndDelete(id);
+
+//             global.io.emit('notification', {
+//                 message: `${user.name} has deleted a post`,
+//             });
+
+//             return res.status(200).json({
+//                 success: true,
+//                 message: "Draft post deleted successfully from database",
+//                 data: deletedPost,
+//             });
+//         }
+
+//         if (PostDetail.status === 'draft' && socialMediaAccounts.platformName === "linkedin") {
+//             if (PostDetail.platformSpecific.xtwitter || PostDetail.platformSpecific.facebook || PostDetail.platformSpecific.instagram || PostDetail.platformSpecific.pinterest) {
+//                 // Update post to remove Twitter data while keeping other platforms
+//                 const updatedPost = await Post.findByIdAndUpdate(
+//                     id,
+//                     {
+//                         $unset: { 'platformSpecific.linkedin': 1 },
+//                     },
+//                     { new: true }
+//                 );
+
+//                 global.io.emit('notification', {
+//                     message: `${user.name} has deleted a post`,
+//                 });
+
+//                 return res.status(200).json({
+//                     success: true,
+//                     message: "Linkedin content removed from multi-platform post",
+//                     data: updatedPost,
+//                 });
+//             }
+
+//             const deletedPost = await Post.findByIdAndDelete(id);
+
+//             global.io.emit('notification', {
+//                 message: `${user.name} has deleted a post`,
+//             });
+
+//             return res.status(200).json({
+//                 success: true,
+//                 message: "Draft post deleted successfully from database",
+//                 data: deletedPost,
+//             });
+//         }
+
+//         if (PostDetail.status === 'posted' && socialMediaAccounts.platformName === "xtwitter") {
+
+//             const client = new TwitterApi({
+//                 appKey: process.env.TWITTERAPIKEY,
+//                 appSecret: process.env.TWITTERAPISECRET,
+//                 accessToken: socialMediaAccounts.accessToken,
+//                 accessSecret: socialMediaAccounts.accessSecret
+//             }).readWrite;
+
+//             await client.v2.deleteTweet(PostDetail.platformSpecific.xtwitter.postId);
+//             if (PostDetail.platformSpecific.linkedin || PostDetail.platformSpecific.facebook || PostDetail.platformSpecific.instagram || PostDetail.platformSpecific.pinterest) {
+//                 // Update post to remove Twitter data while keeping other platforms
+//                 const updatedPost = await Post.findByIdAndUpdate(
+//                     id,
+//                     {
+//                         $unset: { 'platformSpecific.xtwitter': 1 },
+//                     },
+//                     { new: true }
+//                 );
+
+//                 global.io.emit('notification', {
+//                     message: `${user.name} has deleted a post`,
+//                 });
+
+//                 return res.status(200).json({
+//                     success: true,
+//                     message: "Twitter content removed from multi-platform post",
+//                     data: updatedPost,
+//                 });
+//             }
+//             const deletedPost = await Post.findByIdAndDelete(id);
+
+//             global.io.emit('notification', {
+//                 message: `${user.name} has deleted a post`,
+//             });
+
+//             return res.status(200).json({
+//                 success: true,
+//                 message: "Draft post deleted successfully from database",
+//                 data: deletedPost,
+//             });
+//         }
+
+//         if (PostDetail.status === 'draft' && socialMediaAccounts.platformName === "xtwitter") {
+//             if (PostDetail.platformSpecific.linkedin || PostDetail.platformSpecific.facebook || PostDetail.platformSpecific.instagram || PostDetail.platformSpecific.pinterest) {
+//                 // Update post to remove Twitter data while keeping other platforms
+//                 const updatedPost = await Post.findByIdAndUpdate(
+//                     id,
+//                     {
+//                         $unset: { 'platformSpecific.xtwitter': 1 },
+//                     },
+//                     { new: true }
+//                 );
+
+//                 global.io.emit('notification', {
+//                     message: `${user.name} has deleted a post`,
+//                 });
+
+//                 return res.status(200).json({
+//                     success: true,
+//                     message: "Twitter content removed from multi-platform post",
+//                     data: updatedPost,
+//                 });
+//             }
+//             const deletedPost = await Post.findByIdAndDelete(id);
+
+//             global.io.emit('notification', {
+//                 message: `${user.name} has deleted a post`,
+//             });
+
+//             return res.status(200).json({
+//                 success: true,
+//                 message: "Draft post deleted successfully from database",
+//                 data: deletedPost,
+//             });
+//         }
+
+//     } catch (error) {
+//         return res.status(500).json({ success: false, error: error.message })
+//     }
+// };
+
 const PostDelete = async (req, res) => {
     try {
-        let { id } = req.params
+        let { id } = req.params;
 
-        const detail = await Post.findByIdAndDelete(id)
-        return res.status(200).json({ success: true, data: detail })
+        const PostDetail = await Post.findById(id);
+        if (!PostDetail) {
+            return res.status(404).json({ success: false, message: "Post Data not Found!" });
+        }
+
+        const user = await User.findById(PostDetail.userId);
+        const socialMediaAccounts = await SocialMedia.find({
+            $or: [
+                ...(PostDetail.platformSpecific.instagram?.socialMediaId ? [{ _id: PostDetail.platformSpecific.instagram.socialMediaId }] : []),
+                ...(PostDetail.platformSpecific.xtwitter?.socialMediaId ? [{ _id: PostDetail.platformSpecific.xtwitter.socialMediaId }] : []),
+                ...(PostDetail.platformSpecific.pinterest?.socialMediaId ? [{ _id: PostDetail.platformSpecific.pinterest.socialMediaId }] : []),
+                ...(PostDetail.platformSpecific.linkedin?.socialMediaId ? [{ _id: PostDetail.platformSpecific.linkedin.socialMediaId }] : [])
+            ]
+        });
+
+        if (!user || !socialMediaAccounts.length) {
+            return res.status(404).json({ success: false, message: "User or social media account not found" });
+        }
+
+        const platformActions = {
+            linkedin: async () => {
+                const headers = { Authorization: `Bearer ${socialMediaAccounts.accessToken}` };
+                await axios.delete(`${process.env.LINKEDINAPI_BASE_URL}/ugcPosts/${PostDetail.platformSpecific.linkedin.postId}`, { headers });
+                return await Post.findByIdAndUpdate(id, { $unset: { 'platformSpecific.linkedin': 1 } }, { new: true });
+            },
+            xtwitter: async () => {
+                const client = new TwitterApi({
+                    appKey: process.env.TWITTERAPIKEY,
+                    appSecret: process.env.TWITTERAPISECRET,
+                    accessToken: socialMediaAccounts.accessToken,
+                    accessSecret: socialMediaAccounts.accessSecret
+                }).readWrite;
+                await client.v2.deleteTweet(PostDetail.platformSpecific.xtwitter.postId);
+                return await Post.findByIdAndUpdate(id, { $unset: { 'platformSpecific.xtwitter': 1 } }, { new: true });
+            }
+        };
+
+        const action = PostDetail.status === 'posted' ? platformActions[Object.keys(platformActions).find(key => socialMediaAccounts.platformName === key)] : null;
+
+        if (action) {
+            const updatedPost = await action();
+            global.io.emit('notification', { message: `${user.name} has deleted a post` });
+            return res.status(200).json({ success: true, message: `${action.name} content removed from multi-platform post`, data: updatedPost });
+        }
+
+        const deletedPost = await Post.findByIdAndDelete(id);
+        global.io.emit('notification', { message: `${user.name} has deleted a post` });
+        return res.status(200).json({ success: true, message: "Draft post deleted successfully from database", data: deletedPost });
+
     } catch (error) {
-        return res.status(500).json({ success: false, error: error.message })
+        return res.status(500).json({ success: false, error: error.message });
     }
 };
 

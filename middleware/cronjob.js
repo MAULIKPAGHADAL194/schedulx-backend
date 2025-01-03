@@ -91,7 +91,7 @@ cron.schedule('*/1 * * * *', async () => {
                                 break;
                             // Add other platforms here
                             default:
-                                console.warn(`Unsupported platform: ${socialMedia.platformName}`);
+                            // console.warn(`Unsupported platform: ${socialMedia.platformName}`);
                         }
                     }
 
@@ -228,16 +228,16 @@ async function processTwitterPost(post, socialMedia) {
         }
 
     } catch (error) {
-        if (post.platformSpecific.xtwitter?.mediaUrls?.[0]) {
-            try {
-                const linkedInMediaUrl = post.platformSpecific.linkedin?.mediaUrls?.[0];
-                if (linkedInMediaUrl !== post.platformSpecific.xtwitter.mediaUrls[0]) {
-                    await fs.unlink(post.platformSpecific.xtwitter.mediaUrls[0]);
-                }
-            } catch (unlinkError) {
-                console.log('Error deleting local file:', unlinkError);
-            }
-        }
+        // if (post.platformSpecific.xtwitter?.mediaUrls?.[0]) {
+        //     try {
+        //         const linkedInMediaUrl = post.platformSpecific.linkedin?.mediaUrls?.[0];
+        //         if (linkedInMediaUrl !== post.platformSpecific.xtwitter.mediaUrls[0]) {
+        //             await fs.unlink(post.platformSpecific.xtwitter.mediaUrls[0]);
+        //         }
+        //     } catch (unlinkError) {
+        //         console.log('Error deleting local file:', unlinkError);
+        //     }
+        // }
 
         console.log('Twitter post processing error:', {
             postId: post._id,
@@ -378,10 +378,10 @@ async function processLinkedinPost(post, socialMedia) {
         });
 
         // Clean up media file if it exists and failed
-        if (post.platformSpecific.linkedin?.mediaUrls?.[0]) {
-            await fs.unlink(post.platformSpecific.linkedin.mediaUrls[0])
-                .catch(err => console.log('Error deleting local file:', err));
-        }
+        // if (post.platformSpecific.linkedin?.mediaUrls?.[0]) {
+        //     await fs.unlink(post.platformSpecific.linkedin.mediaUrls[0])
+        //         .catch(err => console.log('Error deleting local file:', err));
+        // }
 
         throw error;
     }

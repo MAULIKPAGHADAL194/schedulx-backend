@@ -304,12 +304,11 @@ const linkedinPostDelete = async (req, res) => {
       _id: socialMediaId,
       userId: userId
     });
-    console.log(socialMedia);
-    console.log(user);
 
     if (!user || !socialMedia) {
       return res.status(404).json({ success: false, message: "User or social media account not found" });
     }
+
     const post = await Post.findOne({
       _id: postId,
       "platformSpecific.linkedin.socialMediaId": socialMediaId,
