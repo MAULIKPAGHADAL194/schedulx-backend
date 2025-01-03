@@ -103,10 +103,10 @@ cron.schedule('*/1 * * * *', async () => {
                 console.log(`Error processing post ${post._id}:`, postError.message);
 
                 // Update post status to failed
-                await Post.findByIdAndUpdate(post._id, {
-                    status: 'failed',
-                    error: postError.message
-                });
+                // await Post.findByIdAndUpdate(post._id, {
+                //     status: 'failed',
+                //     error: postError.message
+                // });
             }
         }
 
@@ -275,6 +275,7 @@ async function processLinkedinPost(post, socialMedia) {
 
         // Handle media upload if mediaType and filePath are provided
         if (post.platformSpecific.linkedin?.mediaUrls?.length > 0) {
+
             const filePath = post.platformSpecific.linkedin.mediaUrls[0];
             // Fix: Get mediaType from the file mimetype
             const fileExtension = path.extname(filePath).toLowerCase();
@@ -324,10 +325,17 @@ async function processLinkedinPost(post, socialMedia) {
                 headers: { 'Content-Type': 'application/octet-stream' },
             });
 
-            // Clean up local file
-            await fs.unlink(filePath).catch(err =>
-                console.log(`Error removing file ${filePath}:`, err)
-            );
+            const xtwitterInMediaUrl = post.platformSpecific.xtwitter?.mediaUrls?.[0];
+            if (xtwitterInMediaUrl !== post.platformSpecific.linkedin.mediaUrls[0]) {
+                fs.unlink(filePath, (err) => {
+                    if (err) {
+                        console.log(`Error removing file: ${err}`);
+                        return;
+                    }
+
+                    console.log(`File ${filePath} has been successfully removed.`);
+                });
+            }
         }
 
         // Step 3: Create the post

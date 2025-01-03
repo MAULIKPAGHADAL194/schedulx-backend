@@ -224,7 +224,7 @@ const successGoogleLogin = async (req, res) => {
     console.log("req.user", req.user);
 
     // Check findUser
-    const findUser = await User.findOne({ email: email });
+    const findUser = await User.findOne({ email });
 
     if (findUser) {
       const user = {

@@ -44,89 +44,131 @@ const UsersGet = async (req, res) => {
   }
 };
 
+// const UserGet = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     const [findUser, findUserSocialMediaAccount] = await Promise.all([
+//       User.findById(id).select('-createdAt -updatedAt -__v -isActive -lastModifiedBy -password'),
+//       SocialMedia.find({ userId: id })
+//         .select('-createdAt -updatedAt -__v -lastModifiedBy -accessToken -accessSecret')
+//     ]);
+
+//     if (!findUser) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "The User ID data does not exist.",
+//       });
+//     }
+
+//     const allPosts = await Post.find({
+//       userId: id,
+//       $or: findUserSocialMediaAccount.map(account => ({
+//         [`platformSpecific.${account.platformName.toLowerCase() === 'xtwitter' ? 'xtwitter' : account.platformName.toLowerCase()}.socialMediaId`]: account._id
+//       }))
+//     }).select('-createdAt -updatedAt -__v -lastModifiedBy');
+
+//     // Get analytics for all posts
+//     const analytics = await Analytics.find({
+//       postId: { $in: allPosts.map(post => post._id) }
+//     }).select('-createdAt -updatedAt -__v');
+
+//     // Create analytics lookup map
+//     const analyticsMap = analytics.reduce((acc, analytic) => {
+//       if (!acc[analytic.postId]) {
+//         acc[analytic.postId] = [];
+//       }
+//       acc[analytic.postId].push(analytic);
+//       return acc;
+//     }, {});
+
+//     const postsBySocialMediaId = allPosts.reduce((acc, post) => {
+//       if (!post.platformSpecific) return acc;
+
+//       Object.entries(post.platformSpecific).forEach(([platform, data]) => {
+//         if (!data || !data.socialMediaId) return;
+
+//         if (!acc[data.socialMediaId]) {
+//           acc[data.socialMediaId] = [];
+//         }
+
+//         const platformSpecificId = data.postId || data.tweetId || data.id;
+
+//         // Filter analytics to only include those matching the current socialMediaId
+//         const postAnalytics = [
+//           ...(analyticsMap[post._id] || []),
+//           ...(platformSpecificId ? (analyticsMap[platformSpecificId] || []) : [])
+//         ].filter(analytic => analytic.socialMediaId.toString() === data.socialMediaId.toString());
+
+//         acc[data.socialMediaId].push({
+//           _id: post._id,
+//           userId: post.userId,
+//           status: post.status,
+//           scheduledTime: post.scheduledTime,
+//           createdAt: post.createdAt,
+//           platformSpecific: { [platform]: data },
+//           analytics: postAnalytics
+//         });
+//       });
+//       return acc;
+//     }, {});
+
+//     // Map social media accounts with their posts
+//     const socialMediaWithPosts = findUserSocialMediaAccount.map(socialMedia => ({
+//       ...socialMedia.toObject(),
+//       posts: postsBySocialMediaId[socialMedia._id] || []
+//     }));
+
+//     return res.status(200).json({
+//       success: true,
+//       data: { user: findUser, socialMedia: socialMediaWithPosts }
+//     });
+//   } catch (error) {
+//     return res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
 const UserGet = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const [findUser, findUserSocialMediaAccount] = await Promise.all([
+    const [user, socialMediaAccounts] = await Promise.all([
       User.findById(id).select('-createdAt -updatedAt -__v -isActive -lastModifiedBy -password'),
-      SocialMedia.find({ userId: id })
-        .select('-createdAt -updatedAt -__v -lastModifiedBy -accessToken -accessSecret')
+      SocialMedia.find({ userId: id }).select('-createdAt -updatedAt -__v -lastModifiedBy -accessToken -accessSecret')
     ]);
 
-    if (!findUser) {
-      return res.status(400).json({
-        success: false,
-        message: "The User ID data does not exist.",
-      });
-    }
+    if (!user) return res.status(400).json({ success: false, message: "User not found." });
 
-    const allPosts = await Post.find({
+    const posts = await Post.find({
       userId: id,
-      $or: findUserSocialMediaAccount.map(account => ({
+      $or: socialMediaAccounts.map(account => ({
         [`platformSpecific.${account.platformName.toLowerCase() === 'xtwitter' ? 'xtwitter' : account.platformName.toLowerCase()}.socialMediaId`]: account._id
       }))
     }).select('-createdAt -updatedAt -__v -lastModifiedBy');
 
-    // Get analytics for all posts
-    const analytics = await Analytics.find({
-      postId: { $in: allPosts.map(post => post._id) }
-    }).select('-createdAt -updatedAt -__v');
+    const analytics = await Analytics.find({ postId: { $in: posts.map(post => post._id) } })
+      .select('-createdAt -updatedAt -__v')
+      .then(data => data.reduce((map, item) => {
+        map[item.postId] = [...(map[item.postId] || []), item];
+        return map;
+      }, {}));
 
-    // Create analytics lookup map
-    const analyticsMap = analytics.reduce((acc, analytic) => {
-      if (!acc[analytic.postId]) {
-        acc[analytic.postId] = [];
-      }
-      acc[analytic.postId].push(analytic);
-      return acc;
-    }, {});
-
-    const postsBySocialMediaId = allPosts.reduce((acc, post) => {
-      if (!post.platformSpecific) return acc;
-
-      Object.entries(post.platformSpecific).forEach(([platform, data]) => {
-        if (!data || !data.socialMediaId) return;
-
-        if (!acc[data.socialMediaId]) {
-          acc[data.socialMediaId] = [];
-        }
-
-        const platformSpecificId = data.postId || data.tweetId || data.id;
-
-        // Filter analytics to only include those matching the current socialMediaId
-        const postAnalytics = [
-          ...(analyticsMap[post._id] || []),
-          ...(platformSpecificId ? (analyticsMap[platformSpecificId] || []) : [])
-        ].filter(analytic => analytic.socialMediaId.toString() === data.socialMediaId.toString());
-
-        acc[data.socialMediaId].push({
-          _id: post._id,
-          userId: post.userId,
-          status: post.status,
-          scheduledTime: post.scheduledTime,
-          createdAt: post.createdAt,
-          platformSpecific: { [platform]: data },
-          analytics: postAnalytics
-        });
-      });
-      return acc;
-    }, {});
-
-    // Map social media accounts with their posts
-    const socialMediaWithPosts = findUserSocialMediaAccount.map(socialMedia => ({
-      ...socialMedia.toObject(),
-      posts: postsBySocialMediaId[socialMedia._id] || []
+    const socialMediaWithPosts = socialMediaAccounts.map(account => ({
+      ...account.toObject(),
+      posts: posts.filter(post =>
+        post.platformSpecific?.[account.platformName.toLowerCase()]?.socialMediaId?.toString() === account._id.toString()
+      ).map(post => ({
+        ...post.toObject(),
+        analytics: analytics[post._id] || []
+      }))
     }));
 
-    return res.status(200).json({
-      success: true,
-      data: { user: findUser, socialMedia: socialMediaWithPosts }
-    });
+    res.status(200).json({ success: true, data: { user, socialMedia: socialMediaWithPosts } });
   } catch (error) {
-    return res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 const UserUpdate = async (req, res) => {
   try {
