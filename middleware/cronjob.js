@@ -239,11 +239,11 @@ async function processTwitterPost(post, socialMedia) {
         //     }
         // }
 
-        console.log('Twitter post processing error:', {
-            postId: post._id,
-            error: error.message,
-            stack: error.stack
-        });
+        // console.log('Twitter post processing error:', {
+        //     postId: post._id,
+        //     error: error.message,
+        //     stack: error.stack
+        // });
     }
 }
 
@@ -379,19 +379,17 @@ async function processLinkedinPost(post, socialMedia) {
             console.log({ success: false, message: "Failed to post linkedin post" });
         }
     } catch (error) {
-        console.error('LinkedIn post processing error:', {
-            postId: post._id,
-            error: error.message,
-            stack: error.stack
-        });
+        // console.error('LinkedIn post processing error:', {
+        //     postId: post._id,
+        //     error: error.message,
+        //     stack: error.stack
+        // });
 
         // Clean up media file if it exists and failed
         // if (post.platformSpecific.linkedin?.mediaUrls?.[0]) {
         //     await fs.unlink(post.platformSpecific.linkedin.mediaUrls[0])
         //         .catch(err => console.log('Error deleting local file:', err));
         // }
-
-        throw error;
     }
 };
 
