@@ -29,7 +29,7 @@ router.get('/callback',
   (req, res) => {
     // Redirect to the frontend with user data
     const user = encodeURIComponent(JSON.stringify(req.user));
-    res.redirect(`${process.env.RETURN_URL}?user=${user}`);
+    res.redirect(`${process.env.RETURN_URL}?twitter=${user}`);
   });
 router.post("/twitter-post",
   authMiddleware, upload.single('file'),

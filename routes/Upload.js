@@ -33,30 +33,31 @@ router.post("/local-upload", authMiddleware, uploadLocal.single('image'), ImgUpl
 
 router.post('/img-download', async (req, res) => {
   try {
-    const { public_id } = req.body;
+    const { image } = req.body; // Change to accept imageUrl
+    console.log(image);
 
-    // Construct the Cloudinary image URL
-    const imageUrl = `https://res.cloudinary.com/${process.env.CLOUDNAME}/image/upload/${public_id}`;
-
-    const fileName = imageUrl.split('/').pop();
+    const fileName = image.split('/').pop();
     console.log(fileName);
-    const localPath = path.join('uploads', `${fileName}.jpg`);
+    const localPath = path.join('uploads', fileName); // Save with original name
 
     const writer = createWriteStream(localPath);
 
-    axios({
+    // Download the image
+    const response = await axios({
       method: 'get',
-      url: imageUrl,
+      url: image,
       responseType: 'stream',
-    }).then(response => {
-      response.data.pipe(writer);
-      writer.on('finish', () => {
-        console.log(`Image saved at ${localPath}`);
-        res.download(localPath); // Send file to client
-      });
-    }).catch(error => {
-      console.error(error);
-      res.status(500).send('Error downloading image');
+    });
+
+    response.data.pipe(writer);
+
+    writer.on('finish', () => {
+      res.status(200).json({ fileName, imagePath: localPath });
+    });
+
+    writer.on('error', (err) => {
+      console.error(`Error saving image: ${err}`);
+      res.status(500).send({ message: "Error saving image" });
     });
   } catch (error) {
     console.error(error);

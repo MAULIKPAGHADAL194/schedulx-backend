@@ -91,7 +91,7 @@ const linkedinlogin = async (req, res) => {
       // console.log("userProfile", userProfile);
 
       const user = encodeURIComponent(JSON.stringify(userProfile));
-      return res.redirect(`${process.env.RETURN_URL}?user=${user}&accessToken=${accessToken}`);
+      return res.redirect(`${process.env.RETURN_URL}?linkedin=${user}&accessToken=${accessToken}`);
     } else {
       return res.redirect(`${process.env.RETURN_URL}`);
     }
