@@ -5,7 +5,6 @@ const fs = require('fs').promises;
 const axios = require('axios');
 const { v2: cloudinary } = require("cloudinary");
 const path = require('path');
-const puppeteer = require('puppeteer');
 
 //! Cloudinary configuration
 cloudinary.config({
@@ -214,6 +213,10 @@ async function processTwitterPost(post, socialMedia) {
                 platformSpecificPostId: twitterPostAdd.platformSpecific.xtwitter._id,
             });
 
+            global.io.emit('notification', {
+                message: `Post successfully uploaded to Twitter: ${post.platformSpecific.xtwitter.text}`,
+            });
+
             console.log({ success: true, data: twitterPostAdd });
         } else {
             throw new Error("Failed to post tweet");
@@ -342,7 +345,13 @@ async function processLinkedinPost(post, socialMedia) {
                 'platformSpecific.linkedin.content': post.platformSpecific.linkedin.content
             }, { new: true });
 
+            if (!linkedinPostAdd) {
+                throw new Error('Failed to update post status in database');
+            }
 
+            global.io.emit('notification', {
+                message: `Post successfully uploaded to Twitter: ${post.platformSpecific.linkedin.content}`,
+            });
             console.log({ success: true, data: linkedinPostAdd });
         } else {
             console.log({ success: false, message: "Failed to post linkedin post" });
