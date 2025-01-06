@@ -152,20 +152,27 @@ async function processTwitterPost(post, socialMedia) {
         const mentions = post.platformSpecific.xtwitter.mentions || [];
         const mentionText = mentions.map((mention) => `@${mention}`).join(' ');
 
+        const postData = {
+            content: `${post.platformSpecific.xtwitter.text} ${hashtagText} ${mentionText}`.trim(),
+            media: mediaData.length > 0 ? { media_ids: mediaData } : undefined // Adjusted to handle media
+        };
+
         // Create the tweet payload
         // const tweetData = {
         //     text: post.platformSpecific.xtwitter.text,
         // };
-        const tweetData = {
-            text: `${post.platformSpecific.xtwitter.text} ${hashtagText} ${mentionText}`.trim(),
-        };
 
-        if (mediaData.length > 0) {
-            tweetData.media = { media_ids: mediaData };
-        }
+        // const tweetData = {
+        //     text: `${post.platformSpecific.xtwitter.text} ${hashtagText} ${mentionText}`.trim(),
+        // };
+
+        // if (mediaData.length > 0) {
+        //     tweetData.media = { media_ids: mediaData };
+        // }
 
         // Post tweet using the v2 API
-        const tweet = await client.v2.tweet(tweetData);
+        // const tweet = await client.v2.tweet(tweetData);
+        const tweet = await client.v2.tweet(postData);
 
         // Handle first comment if present
         if (post.platformSpecific.xtwitter.firstComment && tweet.data.id) {
@@ -211,8 +218,11 @@ async function processTwitterPost(post, socialMedia) {
     } catch (error) {
         console.log('Twitter post processing error:', {
             postId: post._id,
-            error: error.message,
-            stack: error.stack
+            errormessage: error.message,
+            stack: error.stack,
+            timestamp: getCurrentISTTime(),
+            error: error
+
         });
     }
 }
@@ -253,7 +263,7 @@ async function processLinkedinPost(post, socialMedia) {
 
             // Upload to Cloudinary first
             const cloudinaryResult = await new Promise((resolve, reject) => {
-                cloudinary.uploader.upload(filePath, (error, result) => {
+                cloudinary.uploader.upload(filePath, { resource_type: "auto" }, (error, result) => {
                     if (error) reject(error);
                     else resolve(result);
                 });

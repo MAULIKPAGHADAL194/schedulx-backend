@@ -171,6 +171,25 @@ const PostUpdate = async (req, res) => {
                 error: "Only draft posts or scheduled posts with future times can be updated"
             });
         }
+
+        const platforms = ['instagram', 'xtwitter', 'pinterest', 'linkedin'];
+        for (const platform of platforms) {
+            if (platformSpecific?.[platform]?.mediaUrls) {
+                const mediaUrls = platformSpecific[platform].mediaUrls;
+                for (const mediaUrl of mediaUrls) {
+                    const cleanMediaUrl = mediaUrl.replace(/^uploads[\/\\]/, '');
+                    const filePath = path.join(__dirname, '../uploads', cleanMediaUrl);
+                    const exists = await checkFileExists(filePath);
+                    if (!exists) {
+                        return res.status(400).json({
+                            success: false,
+                            error: `Media file ${mediaUrl} not found in uploads folder`
+                        });
+                    }
+                }
+            }
+        }
+
         const updatedPost = await Post.findByIdAndUpdate(
             id,
             {
