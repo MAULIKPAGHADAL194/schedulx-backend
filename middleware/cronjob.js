@@ -78,24 +78,6 @@ cron.schedule('*/1 * * * *', async () => {
                             console.log("Calling processLinkedinPost");
                             platformPromises.push(processLinkedinPost(post, socialMedia));
                         }
-                        // switch (socialMedia.platformName.toLowerCase()) {
-                        //     case 'xtwitter':
-                        //         if (post.platformSpecific.xtwitter?.socialMediaId?.toString() === socialMedia._id.toString()) {
-                        //             console.log("Calling processTwitterPost");
-                        //             platformPromises.push(processTwitterPost(post, socialMedia));
-                        //             // processTwitterPost(post, socialMedia);
-                        //         }
-                        //         break;
-                        //     case 'linkedin':
-                        //         if (post.platformSpecific.linkedin?.socialMediaId?.toString() === socialMedia._id.toString()) {
-                        //             console.log("Calling processLinkedinPost");
-                        //             platformPromises.push(processLinkedinPost(post, socialMedia));
-                        //         }
-                        //         break;
-                        //     // Add other platforms here
-                        //     default:
-                        //     // console.warn(`Unsupported platform: ${socialMedia.platformName}`);
-                        // }
                     }
 
                     // Wait for all platform posts to complete
@@ -134,30 +116,34 @@ async function processTwitterPost(post, socialMedia) {
         // Use readWrite instead of v2 to access all necessary methods
         const client = userClient.readWrite;
 
-        let mediaData;
-        let cloudinaryUrl;
+        let mediaData = [];
+        let cloudinaryUrls = [];
+
         if (post.platformSpecific.xtwitter?.mediaUrls && post.platformSpecific.xtwitter.mediaUrls.length > 0) {
-            const mediaPath = post.platformSpecific.xtwitter.mediaUrls[0];
-            const mediaFileBuffer = await fs.readFile(mediaPath);
+            for (const mediaPath of post.platformSpecific.xtwitter.mediaUrls) {
+                const mediaFileBuffer = await fs.readFile(mediaPath);
 
-            const cloudinaryResult = await new Promise((resolve, reject) => {
-                cloudinary.uploader.upload(mediaPath, (error, result) => {
-                    if (error) reject(error);
-                    else resolve(result);
+                const cloudinaryResult = await new Promise((resolve, reject) => {
+                    cloudinary.uploader.upload(mediaPath, { resource_type: "auto" }, (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    });
                 });
-            });
 
-            cloudinaryUrl = cloudinaryResult.secure_url;
+                cloudinaryUrls.push(cloudinaryResult.secure_url);
 
-            // Determine media type from file extension
-            const fileExtension = mediaPath.split('.').pop().toLowerCase();
-            const mimeType = fileExtension === 'mp4' ? 'video/mp4' : 'image/jpeg';
+                // Determine media type from file extension
+                const fileExtension = mediaPath.split('.').pop().toLowerCase();
+                const mimeType = fileExtension === 'mp4' ? 'video/mp4' : 'image/jpeg';
 
-            // Upload media using v1 endpoint
-            mediaData = await client.v1.uploadMedia(mediaFileBuffer, {
-                type: mimeType,
-                mimeType: mimeType
-            });
+                // Upload media using v1 endpoint
+                const uploadedMedia = await client.v1.uploadMedia(mediaFileBuffer, {
+                    type: mimeType,
+                    mimeType: mimeType
+                });
+
+                mediaData.push(uploadedMedia);
+            }
         }
 
         const hashtags = post.platformSpecific.xtwitter.hashtags || [];
@@ -174,8 +160,8 @@ async function processTwitterPost(post, socialMedia) {
             text: `${post.platformSpecific.xtwitter.text} ${hashtagText} ${mentionText}`.trim(),
         };
 
-        if (mediaData) {
-            tweetData.media = { media_ids: [mediaData] };
+        if (mediaData.length > 0) {
+            tweetData.media = { media_ids: mediaData };
         }
 
         // Post tweet using the v2 API
@@ -196,7 +182,7 @@ async function processTwitterPost(post, socialMedia) {
                 status: 'posted',
                 lastModifiedBy: post.createdBy,
                 'platformSpecific.xtwitter.postId': tweet.data.id,
-                'platformSpecific.xtwitter.mediaUrls': cloudinaryUrl ? [cloudinaryUrl] : [],
+                'platformSpecific.xtwitter.mediaUrls': cloudinaryUrls ? [cloudinaryUrls] : [],
                 'platformSpecific.xtwitter.text': post.platformSpecific.xtwitter.text,
                 'platformSpecific.xtwitter.hashtags': hashtags,
                 'platformSpecific.xtwitter.mentions': mentions
