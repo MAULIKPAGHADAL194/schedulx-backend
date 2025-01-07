@@ -56,6 +56,12 @@ const PostAdd = async (req, res) => {
                 scheduledTime,
             };
             const linkedinDetail = await Post.create(linkedinPost);
+            await Analytics.create({
+                postId: linkedinDetail._id,
+                socialMediaId: linkedinDetail.platformSpecific.linkedin.socialMedia,
+                userId: linkedinDetail.userId,
+                platformSpecificPostId: linkedinDetail.platformSpecific.linkedin._id, // Use linkedinDetail instead
+            });
             createdPosts.push({ ...linkedinDetail.toObject(), platform: 'LinkedIn' });
         }
 
@@ -69,6 +75,12 @@ const PostAdd = async (req, res) => {
                 scheduledTime,
             };
             const twitterDetail = await Post.create(twitterPost);
+            await Analytics.create({
+                postId: linkedinDetail._id,
+                socialMediaId: linkedinDetail.platformSpecific.xtwitter.socialMedia,
+                userId: linkedinDetail.userId,
+                platformSpecificPostId: linkedinDetail.platformSpecific.xtwitter._id, // Use linkedinDetail instead
+            });
             createdPosts.push({ ...twitterDetail.toObject(), platform: 'xtwitter' });
         }
 
@@ -116,7 +128,10 @@ const PostsGet = async (req, res) => {
             $or: socialMediaAccounts.map(({ platformName, _id }) => ({
                 [`platformSpecific.${platformName.toLowerCase() === 'xtwitter' ? 'xtwitter' : platformName.toLowerCase()}.socialMediaId`]: _id
             }))
-        }).skip((page - 1) * limit).limit(parseInt(limit)).select('-createdAt -updatedAt -__v -lastModifiedBy');
+        })
+            // .skip((page - 1) * limit)
+            // .limit(parseInt(limit))
+            .select('-createdAt -updatedAt -__v -lastModifiedBy');
 
         const analytics = await Analytics.find({
             postId: { $in: allPosts.map(post => post._id) }
@@ -144,17 +159,17 @@ const PostsGet = async (req, res) => {
             return posts.length > 0 ? { ...account.toObject(), posts } : null;
         }).filter(Boolean); // Filter out null values
 
-        const totalPages = Math.ceil(totalPosts / limit);
+        // const totalPages = Math.ceil(totalPosts / limit);
 
         res.status(200).json({
             success: true,
-            pagination: {
-                currentPage: parseInt(page),
-                totalPosts,
-                totalPages,
-                pageSize: parseInt(limit),
-                limit: parseInt(limit),
-            },
+            // pagination: {
+            //     currentPage: parseInt(page),
+            //     totalPosts,
+            //     totalPages,
+            //     pageSize: parseInt(limit),
+            //     limit: parseInt(limit),
+            // },
             data: postsBySocialMediaId
         });
     } catch (error) {
