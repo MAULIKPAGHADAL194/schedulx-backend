@@ -29,10 +29,16 @@ function getCurrentISTDate() {
 }
 
 let isCronRunning = false;
+let isCronRunning2 = false;
+let isCronRunning3 = false;
 
-// Run every minute
 cron.schedule('*/1 * * * *', async () => {
     try {
+
+        while (isCronRunning3 || isCronRunning2) {
+            console.log('Waiting for the first cron job to complete...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+        }
 
         if (isCronRunning) {
             console.log('Previous cron job still running, skipping...');
@@ -53,14 +59,15 @@ cron.schedule('*/1 * * * *', async () => {
                     const platformPromises = [];
 
                     // Get all relevant social media accounts for this post
+                    const platforms = ['instagram', 'xtwitter', 'pinterest', 'linkedin'];
+                    const socialMediaIds = platforms
+                        .map(platform => post.platformSpecific[platform]?.socialMediaId)
+                        .filter(Boolean);
+
                     const socialMediaAccounts = await SocialMedia.find({
-                        $or: [
-                            ...(post.platformSpecific.instagram?.socialMediaId ? [{ _id: post.platformSpecific.instagram.socialMediaId }] : []),
-                            ...(post.platformSpecific.xtwitter?.socialMediaId ? [{ _id: post.platformSpecific.xtwitter.socialMediaId }] : []),
-                            ...(post.platformSpecific.pinterest?.socialMediaId ? [{ _id: post.platformSpecific.pinterest.socialMediaId }] : []),
-                            ...(post.platformSpecific.linkedin?.socialMediaId ? [{ _id: post.platformSpecific.linkedin.socialMediaId }] : [])
-                        ]
+                        _id: { $in: socialMediaIds }
                     });
+
 
                     if (!socialMediaAccounts || socialMediaAccounts.length === 0) {
                         console.log(`No social media accounts found for post ${post._id}`);
@@ -70,6 +77,10 @@ cron.schedule('*/1 * * * *', async () => {
                     // Process each social media account
                     for (const socialMedia of socialMediaAccounts) {
                         const mediaExists = post.platformSpecific.xtwitter?.mediaUrls?.length > 0 && await fs.access(post.platformSpecific.xtwitter.mediaUrls[0]).then(() => true).catch(() => false);
+                        if (!mediaExists) {
+                            console.log(`Media file does not exist for post ${post._id}`);
+                            continue; // Skip processing this post
+                        }
                         // Check if media exists before processing
                         if (socialMedia.platformName.toLowerCase() === 'xtwitter' && mediaExists) {
                             console.log("Calling processTwitterPost");
@@ -174,14 +185,21 @@ async function processTwitterPost(post, socialMedia) {
         // const tweet = await client.v2.tweet(tweetData);
         const tweet = await client.v2.tweet(postData);
 
+        if (!tweet) {
+            throw new Error("Failed to post tweet", postData);
+        }
+
         // Handle first comment if present
         if (post.platformSpecific.xtwitter.firstComment && tweet.data.id) {
-            await client.v2.tweet({
+            const tweetComment = await client.v2.tweet({
                 text: post.platformSpecific.xtwitter.firstComment,
                 reply: {
                     in_reply_to_tweet_id: tweet.data.id
                 }
             });
+            if (!tweetComment) {
+                throw new Error("Failed to post comment", postData);
+            }
         }
 
         if (tweet) {
@@ -361,13 +379,15 @@ async function processLinkedinPost(post, socialMedia) {
     }
 };
 
-let isCronRunning2 = false;
-
-// Run every 15 minutes
 cron.schedule('*/20 * * * *', async () => {
     try {
+        while (isCronRunning) {
+            console.log('Waiting for the first cron job to complete...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+        }
+
         if (isCronRunning2) {
-            console.log('Previous cron job still running, skipping...');
+            console.log('Second cron job still running, skipping...');
             return;
         }
 
@@ -525,21 +545,54 @@ async function twitterAnalytics(posts, socialMedia) {
     }
 }
 
-let isCronRunning3 = false;
-
 // Run every minute
-// cron.schedule('*/2 * * * *', async () => {
-//     try {
-//         if (isCronRunning3) {
-//             console.log('Previous cron job still running, skipping...');
-//             return;
-//         }
+cron.schedule('* */1 * * *', async () => {
+    try {
+        while (isCronRunning || isCronRunning2) {
+            console.log('Waiting for the first cron job to complete...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+        }
 
-//         isCronRunning3 = true;
+        if (isCronRunning3) {
+            console.log('Second cron job still running, skipping...');
+            return;
+        }
 
-//     } catch (error) {
-//         console.log('Critical error in cron job:', error.message);
-//     } finally {
-//         isCronRunning3 = false;
-//     }
-// });
+        isCronRunning3 = true;
+
+        const uploadsDir = path.join(__dirname, '../uploads'); // Adjust the path as necessary
+
+        const posts = await Post.find({ status: { $in: ["scheduled", "draft", "failed"] } });
+        const files = await fs.readdir(uploadsDir);
+        const loggedFiles = new Set();
+
+        // Create an array of promises for checking media URLs
+        const platforms = ['instagram', 'xtwitter', 'pinterest', 'linkedin'];
+        for (const file of files) {
+            let fileExistsInPosts = false; // Track if the file exists in any post
+            for (const post of posts) {
+                for (const platform of platforms) {
+                    const mediaUrls = post.platformSpecific[platform]?.mediaUrls || [];
+                    if (mediaUrls.includes(file)) {
+                        fileExistsInPosts = true; // File exists in the media URLs
+                        break; // No need to check further
+                    }
+                }
+                if (fileExistsInPosts) break; // Exit the outer loop if found
+            }
+
+            if (!fileExistsInPosts && !loggedFiles.has(file)) {
+                console.log(`File not exists: ${file}`);
+                loggedFiles.add(file);
+                // Remove the file if it does not exist in any post
+                await fs.unlink(path.join(uploadsDir, file)); // Delete the file
+                console.log(`Removed file: ${file}`); // Log the removal
+            }
+        }
+
+    } catch (error) {
+        console.log('Critical error in cron job:', error.message);
+    } finally {
+        isCronRunning3 = false;
+    }
+});

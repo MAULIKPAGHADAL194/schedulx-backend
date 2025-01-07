@@ -34,6 +34,7 @@ const login = async (req, res) => {
 
     global.io.emit('notification', {
       message: `${findUser.name} has logged in`,
+      userId: findUser._id,
     });
 
     // Store in cookies and session

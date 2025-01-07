@@ -131,7 +131,7 @@ const postSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ["posted", "scheduled", "draft"],
+            enum: ["posted", "scheduled", "draft", "failed"],
             default: "scheduled",
         },
         scheduledTime: {
