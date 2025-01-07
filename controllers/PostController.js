@@ -58,7 +58,7 @@ const PostAdd = async (req, res) => {
             const linkedinDetail = await Post.create(linkedinPost);
             await Analytics.create({
                 postId: linkedinDetail._id,
-                socialMediaId: linkedinDetail.platformSpecific.linkedin.socialMedia,
+                socialMediaId: linkedinDetail.platformSpecific.linkedin.socialMediaId,
                 userId: linkedinDetail.userId,
                 platformSpecificPostId: linkedinDetail.platformSpecific.linkedin._id, // Use linkedinDetail instead
             });
@@ -77,7 +77,7 @@ const PostAdd = async (req, res) => {
             const twitterDetail = await Post.create(twitterPost);
             await Analytics.create({
                 postId: linkedinDetail._id,
-                socialMediaId: linkedinDetail.platformSpecific.xtwitter.socialMedia,
+                socialMediaId: linkedinDetail.platformSpecific.xtwitter.socialMediaId,
                 userId: linkedinDetail.userId,
                 platformSpecificPostId: linkedinDetail.platformSpecific.xtwitter._id, // Use linkedinDetail instead
             });
