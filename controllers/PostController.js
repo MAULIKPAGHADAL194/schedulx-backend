@@ -88,7 +88,7 @@ const PostAdd = async (req, res) => {
 
 const PostsGet = async (req, res) => {
     try {
-        const { status, platformName } = req.query;
+        const { status, platformName, page = 1, limit = 10 } = req.query;
 
         // Prepare filters
         const userId = req.user._id;
@@ -103,13 +103,20 @@ const PostsGet = async (req, res) => {
             return res.status(404).json({ success: false, message: "No social media accounts found." });
         }
 
+        const totalPosts = await Post.countDocuments({
+            ...filter,
+            $or: socialMediaAccounts.map(({ platformName, _id }) => ({
+                [`platformSpecific.${platformName.toLowerCase() === 'xtwitter' ? 'xtwitter' : platformName.toLowerCase()}.socialMediaId`]: _id
+            }))
+        });
+
         // Fetch posts and analytics
         const allPosts = await Post.find({
             ...filter,
             $or: socialMediaAccounts.map(({ platformName, _id }) => ({
                 [`platformSpecific.${platformName.toLowerCase() === 'xtwitter' ? 'xtwitter' : platformName.toLowerCase()}.socialMediaId`]: _id
             }))
-        }).select('-createdAt -updatedAt -__v -lastModifiedBy');
+        }).skip((page - 1) * limit).limit(parseInt(limit)).select('-createdAt -updatedAt -__v -lastModifiedBy');
 
         const analytics = await Analytics.find({
             postId: { $in: allPosts.map(post => post._id) }
@@ -122,11 +129,13 @@ const PostsGet = async (req, res) => {
 
         // Map posts with analytics by social media account
         const postsBySocialMediaId = socialMediaAccounts.map(account => {
-            const posts = allPosts.filter(post =>
-                Object.values(post.platformSpecific || {}).some(data =>
-                    data?.socialMediaId?.toString() === account._id.toString()
+            const posts = allPosts.filter(post => {
+                const hasAnalytics = analyticsMap[post._id]?.length > 0;
+                return Object.values(post.platformSpecific || {}).some(data =>
+                    data?.socialMediaId?.toString() === account._id.toString() &&
+                    (account.platformName !== 'xtwitter' || hasAnalytics)
                 )
-            ).map(post => ({
+            }).map(post => ({
                 ...post.toObject(),
                 analytics: analyticsMap[post._id] || [],
             }));
@@ -135,7 +144,19 @@ const PostsGet = async (req, res) => {
             return posts.length > 0 ? { ...account.toObject(), posts } : null;
         }).filter(Boolean); // Filter out null values
 
-        res.status(200).json({ success: true, data: postsBySocialMediaId });
+        const totalPages = Math.ceil(totalPosts / limit);
+
+        res.status(200).json({
+            success: true,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPosts,
+                totalPages,
+                pageSize: parseInt(limit),
+                limit: parseInt(limit),
+            },
+            data: postsBySocialMediaId
+        });
     } catch (error) {
         console.error('PostsGet Error:', error);
         res.status(500).json({ success: false, error: error.message || 'Internal server error' });
