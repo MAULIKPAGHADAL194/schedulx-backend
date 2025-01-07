@@ -76,10 +76,10 @@ const PostAdd = async (req, res) => {
             };
             const twitterDetail = await Post.create(twitterPost);
             await Analytics.create({
-                postId: linkedinDetail._id,
-                socialMediaId: linkedinDetail.platformSpecific.xtwitter.socialMediaId,
-                userId: linkedinDetail.userId,
-                platformSpecificPostId: linkedinDetail.platformSpecific.xtwitter._id, // Use linkedinDetail instead
+                postId: twitterDetail._id,
+                socialMediaId: twitterDetail.platformSpecific.xtwitter.socialMediaId,
+                userId: twitterDetail.userId,
+                platformSpecificPostId: twitterDetail.platformSpecific.xtwitter._id, // Use linkedinDetail instead
             });
             createdPosts.push({ ...twitterDetail.toObject(), platform: 'xtwitter' });
         }
