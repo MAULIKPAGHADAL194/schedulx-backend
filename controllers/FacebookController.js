@@ -10,19 +10,25 @@ const facebookAdd = async (req, res) => {
         const { socialMediaEmail, displayName, socialMediaID, accessToken } =
             req.body;
 
-        const findSocialMediaAccount = await SocialMedia.findOne({
+        const findSocialMediaAccount = await SocialMedia.find({
             platformName: "facebook",
             userId: req.user._id,
             socialMediaID: socialMediaID,
         });
-        if (findSocialMediaAccount) {
-            findSocialMediaAccount.accessToken = accessToken;
-            findSocialMediaAccount.platformUserName = displayName;
-            findSocialMediaAccount.socialMediaEmail = socialMediaEmail;
-            findSocialMediaAccount.socialMediaID = socialMediaID;
+        if (findSocialMediaAccount.length > 0) {
+            const socialmediaAccountUpdate = await SocialMedia.findByIdAndUpdate(findSocialMediaAccount._id, {
+                accessToken: accessToken,
+                socialMediaEmail: socialMediaEmail,
+                platformUserName: displayName,
+                userId: req.user._id,
+                socialMediaID: socialMediaID, //? insert sub id
+                createdBy: displayName,
+            }, { new: true });
 
-            await findSocialMediaAccount.save();
+            if (!socialmediaAccountUpdate) {
+                return res.status(500).json({ message: "facebook not add" });
 
+            }
             global.io.emit("notification", {
                 message: `${displayName} has logged in into facebook`,
             });
@@ -43,14 +49,16 @@ const facebookAdd = async (req, res) => {
             socialMediaID: socialMediaID, //? insert sub id
             createdBy: displayName,
         });
+        await socialmediaAccountAdd.save();
 
+        if (!socialmediaAccountAdd) {
+            return res.status(500).json({ message: "facebook not add" });
+
+        }
         global.io.emit("notification", {
             message: `${displayName} has logged in into facebook`,
         });
 
-        await socialmediaAccountAdd.save();
-
-        // User is already authenticated
         return res.status(200).json({
             message: "Facebook Account Successfully Added",
             data: socialmediaAccountAdd,

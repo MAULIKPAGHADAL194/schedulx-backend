@@ -76,13 +76,13 @@ cron.schedule('*/1 * * * *', async () => {
 
                     // Process each social media account
                     for (const socialMedia of socialMediaAccounts) {
-                        const mediaExists = post.platformSpecific.xtwitter?.mediaUrls?.length > 0 && await fs.access(post.platformSpecific.xtwitter.mediaUrls[0]).then(() => true).catch(() => false);
-                        if (!mediaExists) {
-                            console.log(`Media file does not exist for post ${post._id}`);
-                            continue; // Skip processing this post
-                        }
+                        // const mediaExists = post.platformSpecific.xtwitter?.mediaUrls?.length > 0 && await fs.access(post.platformSpecific.xtwitter.mediaUrls[0]).then(() => true).catch(() => false);
+                        // if (!mediaExists) {
+                        //     console.log(`Media file does not exist for post ${post._id}`);
+                        //     continue; // Skip processing this post
+                        // }
                         // Check if media exists before processing
-                        if (socialMedia.platformName.toLowerCase() === 'xtwitter' && mediaExists) {
+                        if (socialMedia.platformName.toLowerCase() === 'xtwitter') {
                             console.log("Calling processTwitterPost");
                             platformPromises.push(processTwitterPost(post, socialMedia));
                         } else if (socialMedia.platformName.toLowerCase() === 'linkedin') {
@@ -154,6 +154,18 @@ async function processTwitterPost(post, socialMedia) {
                 });
 
                 mediaData.push(uploadedMedia);
+
+                const isMediaUsedInOtherPosts = await checkMediaUsage(mediaPath);
+                if (!isMediaUsedInOtherPosts) {
+                    fs.unlink(mediaPath, (err) => {
+                        if (err) {
+                            // console.log(`Error removing file: ${err}`);
+                            return;
+                        }
+
+                        console.log(`File ${mediaPath} has been successfully removed.`);
+                    });
+                }
             }
         }
 
@@ -163,27 +175,20 @@ async function processTwitterPost(post, socialMedia) {
         const mentions = post.platformSpecific.xtwitter.mentions || [];
         const mentionText = mentions.map((mention) => `@${mention}`).join(' ');
 
-        const postData = {
-            content: `${post.platformSpecific.xtwitter.text} ${hashtagText} ${mentionText}`.trim(),
-            media: mediaData.length > 0 ? { media_ids: mediaData } : undefined // Adjusted to handle media
-        };
-
-        // Create the tweet payload
         // const tweetData = {
         //     text: post.platformSpecific.xtwitter.text,
         // };
+        const tweetData = {
+            text: `${post.platformSpecific.xtwitter.text} ${hashtagText} ${mentionText}`.trim(),
+        };
 
-        // const tweetData = {
-        //     text: `${post.platformSpecific.xtwitter.text} ${hashtagText} ${mentionText}`.trim(),
-        // };
-
-        // if (mediaData.length > 0) {
-        //     tweetData.media = { media_ids: mediaData };
-        // }
+        if (mediaData.length > 0) {
+            tweetData.media = { media_ids: mediaData };
+        }
 
         // Post tweet using the v2 API
-        // const tweet = await client.v2.tweet(tweetData);
-        const tweet = await client.v2.tweet(postData);
+        const tweet = await client.v2.tweet(tweetData);
+        console.log('Tweet Posted Successfully:', tweet);
 
         if (!tweet) {
             throw new Error("Failed to post tweet", postData);
@@ -234,13 +239,10 @@ async function processTwitterPost(post, socialMedia) {
         }
 
     } catch (error) {
-        console.log('Twitter post processing error:', {
+        console.error('Twitter post processing error:', {
             postId: post._id,
-            errormessage: error.message,
-            stack: error.stack,
-            timestamp: getCurrentISTTime(),
-            error: error
-
+            message: error.message,
+            error: error,
         });
     }
 }
@@ -322,6 +324,18 @@ async function processLinkedinPost(post, socialMedia) {
             await axios.put(uploadUrl, file, {
                 headers: { 'Content-Type': 'application/octet-stream' },
             });
+
+            const isMediaUsedInOtherPosts = await checkMediaUsage(filePath);
+            if (!isMediaUsedInOtherPosts) {
+                fs.unlink(filePath, (err) => {
+                    if (err) {
+                        // console.log(`Error removing file: ${err}`);
+                        return;
+                    }
+
+                    console.log(`File ${filePath} has been successfully removed.`);
+                });
+            }
         }
 
         // Step 3: Create the post
@@ -545,54 +559,21 @@ async function twitterAnalytics(posts, socialMedia) {
     }
 }
 
-// Run every minute
-cron.schedule('* */1 * * *', async () => {
-    try {
-        while (isCronRunning || isCronRunning2) {
-            console.log('Waiting for the first cron job to complete...');
-            await new Promise(resolve => setTimeout(resolve, 5000));
-        }
+async function checkMediaUsage(mediaPath) {
+    const posts = await Post.find({ status: { $in: ["scheduled", "draft", "failed"] } });
+    const platforms = ['instagram', 'xtwitter', 'pinterest', 'linkedin'];
+    let usedInOtherPosts = false;
 
-        if (isCronRunning3) {
-            console.log('Second cron job still running, skipping...');
-            return;
-        }
-
-        isCronRunning3 = true;
-
-        const uploadsDir = path.join(__dirname, '../uploads'); // Adjust the path as necessary
-
-        const posts = await Post.find({ status: { $in: ["scheduled", "draft", "failed"] } });
-        const files = await fs.readdir(uploadsDir);
-        const loggedFiles = new Set();
-
-        // Create an array of promises for checking media URLs
-        const platforms = ['instagram', 'xtwitter', 'pinterest', 'linkedin'];
-        for (const file of files) {
-            let fileExistsInPosts = false; // Track if the file exists in any post
-            for (const post of posts) {
-                for (const platform of platforms) {
-                    const mediaUrls = post.platformSpecific[platform]?.mediaUrls || [];
-                    if (mediaUrls.includes(file)) {
-                        fileExistsInPosts = true; // File exists in the media URLs
-                        break; // No need to check further
-                    }
-                }
-                if (fileExistsInPosts) break; // Exit the outer loop if found
-            }
-
-            if (!fileExistsInPosts && !loggedFiles.has(file)) {
-                console.log(`File not exists: ${file}`);
-                loggedFiles.add(file);
-                // Remove the file if it does not exist in any post
-                await fs.unlink(path.join(uploadsDir, file)); // Delete the file
-                console.log(`Removed file: ${file}`); // Log the removal
+    for (const post of posts) {
+        for (const platform of platforms) {
+            const mediaUrls = post.platformSpecific[platform]?.mediaUrls;
+            if (mediaUrls && mediaUrls.includes(mediaPath)) {
+                usedInOtherPosts = true;
+                break;
             }
         }
-
-    } catch (error) {
-        console.log('Critical error in cron job:', error.message);
-    } finally {
-        isCronRunning3 = false;
+        if (usedInOtherPosts) break;
     }
-});
+
+    return usedInOtherPosts;
+}

@@ -34,7 +34,7 @@ passport.use(
         {
             clientID: process.env.APP_ID,
             clientSecret: process.env.APP_SECRET,
-            callbackURL: "https://schedulx-backend.onrender.com/api/v1/facebook/callback",
+            callbackURL: "https://localhost:5000/api/v1/facebook/callback",
         },
         (accessToken, refreshToken, profile, done) => {
             profile.accessToken = accessToken;

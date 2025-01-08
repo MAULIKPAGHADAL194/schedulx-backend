@@ -11,7 +11,6 @@ const twitterAdd = async (req, res) => {
         const findSocialMediaAccount = await SocialMedia.findOne({
             platformName: "xtwitter",
             userId: req.user._id,
-            socialMediaID: socialMediaID,
         });
 
         if (findSocialMediaAccount) {
@@ -81,12 +80,13 @@ const twitterPost = async (req, res) => {
 
 
         const client = userClient.readWrite;
+        console.log("client", client);
 
         let mediaData;
-        if (req.file) { // Ensure the file is present
-            const mediaFileBuffer = await fs.readFileSync(req.file.path);
-            mediaData = await client.v1.uploadMedia(mediaFileBuffer, { type: 'image/jpeg' }); // Specify MIME type for images
-        }
+        // if (req.file) { // Ensure the file is present
+        //     const mediaFileBuffer = await fs.readFileSync(req.file.path);
+        //     mediaData = await client.v1.uploadMedia(mediaFileBuffer, { type: 'image/jpeg' }); // Specify MIME type for images
+        // }
 
         // Create the tweet payload
         const tweetData = {
@@ -99,22 +99,22 @@ const twitterPost = async (req, res) => {
         }
 
         // Post tweet using the v2 API
-        const tweet = await client.v2.tweet(mediaData ? tweetData : { text: tweetText });
+        const tweet = await client.v2.tweet({ text: tweetText });
 
         if (tweet) {
             // console.log("tweet", tweet);
-            const twitterPostAdd = new Post({
-                userId: req.user._id,
-                'platformSpecific.xtwitter.postId': tweet.data.id,
-                'platformSpecific.xtwitter.mediaUrls': mediaData ? [mediaData] : [],
-                'platformSpecific.xtwitter.text': tweetText
-            });
+            // const twitterPostAdd = new Post({
+            //     userId: req.user._id,
+            //     'platformSpecific.xtwitter.postId': tweet.data.id,
+            //     'platformSpecific.xtwitter.mediaUrls': mediaData ? [mediaData] : [],
+            //     'platformSpecific.xtwitter.text': tweetText
+            // });
 
-            await twitterPostAdd.save();
+            // await twitterPostAdd.save();
 
             // console.log("Tweet successful:", twitterPostAdd);
 
-            return res.status(200).json({ success: true, data: twitterPostAdd });
+            return res.status(200).json({ success: true, data: tweet.data });
         } else {
             return res.status(500).json({ success: false, message: "Failed to post tweet" });
         }

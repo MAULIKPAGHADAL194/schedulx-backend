@@ -15,8 +15,8 @@ router.put("/post-schedule-time", authMiddleware, UpdateTimeValidation, UpdateSc
 function UpdateTimeValidation(req, res, next) {
     const schema = Joi.object({
         postId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).message("Invalid postId format."),
-        socialMediaId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).message("Invalid socialMediaId format."),
         scheduledTime: Joi.date().required(),
+        status: Joi.string().valid("scheduled", "draft").required(),
     });
     validateRequest(req, res, next, schema);
 }
@@ -33,14 +33,14 @@ function AddValidation(req, res, next) {
                 location: Joi.string().optional(),
                 stickers: Joi.array().items(Joi.string().max(50)).optional(),
                 firstComment: Joi.string().max(300).optional(),
-                mediaUrls: Joi.array().items(Joi.string().required()).optional(),
+                mediaUrls: Joi.array().items(Joi.string().required()).allow(null).optional(),
             }).optional(),
             xtwitter: Joi.object({
                 text: Joi.string().max(400).optional(),
                 socialMediaId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).message("Invalid socialMediaId format."),
                 hashtags: Joi.array().items(Joi.string().max(50)).optional(),
                 mentions: Joi.array().items(Joi.string().max(50)).optional(),
-                mediaUrls: Joi.array().items(Joi.string().required()).optional(),
+                mediaUrls: Joi.array().items(Joi.string().required()).allow(null).optional(),
                 isThread: Joi.boolean().optional(),
                 firstComment: Joi.string().max(300).optional(),
             }).optional(),
@@ -48,14 +48,14 @@ function AddValidation(req, res, next) {
                 title: Joi.string().max(400).optional(),
                 socialMediaId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).message("Invalid socialMediaId format."),
                 description: Joi.string().max(500).optional(),
-                mediaUrls: Joi.array().items(Joi.string().required()).optional(),
+                mediaUrls: Joi.array().items(Joi.string().required()).allow(null).optional(),
                 destinationLink: Joi.string().optional(),
                 boardName: Joi.string().max(100).optional(),
             }).optional(),
             linkedin: Joi.object({
                 socialMediaId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/).message("Invalid socialMediaId format."),
                 content: Joi.string().max(1300).optional(),
-                mediaUrls: Joi.array().items(Joi.string().required()).optional(),
+                mediaUrls: Joi.array().items(Joi.string().required()).allow(null).optional(),
                 altText: Joi.string().max(200).optional(),
                 firstComment: Joi.string().max(300).optional(),
                 hashtags: Joi.array().items(Joi.string().max(50)).optional(),

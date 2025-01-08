@@ -186,8 +186,8 @@ const PostUpdate = async (req, res) => {
 
         const platforms = ['instagram', 'xtwitter', 'pinterest', 'linkedin'];
         for (const platform of platforms) {
-            if (platformSpecific?.[platform]?.mediaUrls) {
-                const mediaUrls = platformSpecific[platform].mediaUrls;
+            if (req.body.platformSpecific?.[platform]?.mediaUrls) {
+                const mediaUrls = req.body.platformSpecific[platform].mediaUrls;
                 for (const mediaUrl of mediaUrls) {
                     const cleanMediaUrl = mediaUrl.replace(/^uploads[\/\\]/, '');
                     const filePath = path.join(__dirname, '../uploads', cleanMediaUrl);
@@ -303,8 +303,8 @@ const PostDelete = async (req, res) => {
 
 const UpdateScheduleTime = async (req, res) => {
     try {
-        const { scheduledTime, postId, socialMediaId } = req.body;
-        const detail = await Post.findByIdAndUpdate(postId, { scheduledTime }, { new: true });
+        const { scheduledTime, postId, socialMediaId, status } = req.body;
+        const detail = await Post.findByIdAndUpdate(postId, { scheduledTime, status }, { new: true });
         return res.status(200).json({ success: true, data: detail })
     } catch (error) {
         return res.status(500).json({ success: false, error: error.message })
