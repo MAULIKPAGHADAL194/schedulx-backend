@@ -22,7 +22,7 @@ const twitterAdd = async (req, res) => {
             await findSocialMediaAccount.save();
 
             global.io.emit('notification', {
-                message: `${displayName} has logged in into xtwitter`,
+                message: `${displayName} has logged into X (formerly Twitter) successfully.`,
             });
 
             return res.status(200).json({
@@ -45,7 +45,7 @@ const twitterAdd = async (req, res) => {
         await socialmediaAccountAdd.save();
 
         global.io.emit('notification', {
-            message: `${displayName} has logged in into xtwitter`,
+            message: `${displayName} has logged into X (formerly Twitter) successfully.`,
         });
 
         // User is already authenticated
@@ -172,7 +172,7 @@ const twitterDelete = async (req, res) => {
                 );
 
                 global.io.emit('notification', {
-                    message: `${user.name} has deleted a post`,
+                    message: `${user.name} has successfully deleted a post.`,
                 });
 
                 return res.status(200).json({
@@ -184,7 +184,7 @@ const twitterDelete = async (req, res) => {
             const deletedPost = await Post.findByIdAndDelete(postId);
 
             global.io.emit('notification', {
-                message: `${user.name} has deleted a post`,
+                message: `${user.name} has successfully deleted a post.`,
             });
 
             return res.status(200).json({
@@ -207,7 +207,7 @@ const twitterDelete = async (req, res) => {
                 );
 
                 global.io.emit('notification', {
-                    message: `${user.name} has deleted a post`,
+                    message: `${user.name} has successfully deleted a post.`,
                 });
 
                 return res.status(200).json({
@@ -219,7 +219,7 @@ const twitterDelete = async (req, res) => {
             const deletedPost = await Post.findByIdAndDelete(postId);
 
             global.io.emit('notification', {
-                message: `${user.name} has deleted a post`,
+                message: `${user.name} has successfully deleted a post.`,
             });
 
             return res.status(200).json({

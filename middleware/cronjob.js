@@ -128,7 +128,7 @@ async function processTwitterPost(post, socialMedia) {
         const client = userClient.readWrite;
 
         let mediaData = [];
-        let cloudinaryUrls = [];
+        let cloudinaryUrl;
 
         if (post.platformSpecific.xtwitter?.mediaUrls && post.platformSpecific.xtwitter.mediaUrls.length > 0) {
             for (const mediaPath of post.platformSpecific.xtwitter.mediaUrls) {
@@ -141,7 +141,7 @@ async function processTwitterPost(post, socialMedia) {
                     });
                 });
 
-                cloudinaryUrls.push(cloudinaryResult.secure_url);
+                cloudinaryUrl = cloudinaryResult.secure_url;
 
                 // Determine media type from file extension
                 const fileExtension = mediaPath.split('.').pop().toLowerCase();
@@ -212,7 +212,7 @@ async function processTwitterPost(post, socialMedia) {
                 status: 'posted',
                 lastModifiedBy: post.createdBy,
                 'platformSpecific.xtwitter.postId': tweet.data.id,
-                'platformSpecific.xtwitter.mediaUrls': cloudinaryUrls ? [cloudinaryUrls] : [],
+                'platformSpecific.xtwitter.mediaUrls': cloudinaryUrl ? [cloudinaryUrl] : [],
                 'platformSpecific.xtwitter.text': post.platformSpecific.xtwitter.text,
                 'platformSpecific.xtwitter.hashtags': hashtags,
                 'platformSpecific.xtwitter.mentions': mentions
@@ -230,7 +230,7 @@ async function processTwitterPost(post, socialMedia) {
             });
 
             global.io.emit('notification', {
-                message: `Post successfully uploaded to Twitter: ${post.platformSpecific.xtwitter.text}`,
+                message: `Post successfully uploaded to Twitter under the username ${socialMedia.platformUserName ?? socialMedia.platformUserName}`,
             });
 
             console.log({ success: true, data: twitterPostAdd });
@@ -378,7 +378,7 @@ async function processLinkedinPost(post, socialMedia) {
             }
 
             global.io.emit('notification', {
-                message: `Post successfully uploaded to Twitter: ${post.platformSpecific.linkedin.content}`,
+                message: `Post successfully uploaded to Twitter under the username ${socialMedia.platformUserName ?? socialMedia.platformUserName}`,
             });
             console.log({ success: true, data: linkedinPostAdd });
         } else {

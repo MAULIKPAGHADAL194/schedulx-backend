@@ -30,7 +30,7 @@ const facebookAdd = async (req, res) => {
 
             }
             global.io.emit("notification", {
-                message: `${displayName} has logged in into facebook`,
+                message: `${displayName} has logged into Facebook successfully.`,
             });
 
             return res.status(200).json({
@@ -56,7 +56,7 @@ const facebookAdd = async (req, res) => {
 
         }
         global.io.emit("notification", {
-            message: `${displayName} has logged in into facebook`,
+            message: `${displayName} has logged into Facebook successfully.`,
         });
 
         return res.status(200).json({
@@ -87,7 +87,7 @@ const successFacebookLogin = async (req, res) => {
             await findSocialMediaAccount.save();
 
             global.io.emit("notification", {
-                message: `${displayName} has logged in`,
+                message: `${displayName} has logged into Facebook successfully.`,
             });
 
             return res.status(200).json({
@@ -110,7 +110,7 @@ const successFacebookLogin = async (req, res) => {
         await socialmediaAccountAdd.save();
 
         global.io.emit("notification", {
-            message: `${displayName} has logged in`,
+            message: `${displayName} has logged into Facebook successfully.`,
         });
 
         // User is already authenticated

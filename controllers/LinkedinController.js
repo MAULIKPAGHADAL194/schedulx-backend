@@ -22,7 +22,7 @@ const linkedinAdd = async (req, res) => {
       await findSocialMediaAccount.save();
 
       global.io.emit('notification', {
-        message: `${name} has logged in into linkedin`,
+        message: `${name} has logged into linkedin successfully.`,
       });
 
       return res.status(200).json({
@@ -43,7 +43,7 @@ const linkedinAdd = async (req, res) => {
     });
 
     global.io.emit('notification', {
-      message: `${name} has logged in into linkedin`,
+      message: `${name} has logged into linkedin successfully.`,
     });
 
     await socialmediaAccountAdd.save();
@@ -338,7 +338,7 @@ const linkedinPostDelete = async (req, res) => {
         );
 
         global.io.emit('notification', {
-          message: `${name} has deleted a post`,
+          message: `${user.name} has successfully deleted a post.`,
         });
 
         return res.status(200).json({
@@ -350,7 +350,7 @@ const linkedinPostDelete = async (req, res) => {
       const deletedPost = await Post.findByIdAndDelete(postId);
 
       global.io.emit('notification', {
-        message: `${user.name} has deleted a post`,
+        message: `${user.name} has successfully deleted a post.`,
       });
 
       return res.status(200).json({
@@ -372,7 +372,7 @@ const linkedinPostDelete = async (req, res) => {
         );
 
         global.io.emit('notification', {
-          message: `${user.name} has deleted a post`,
+          message: `${user.name} has successfully deleted a post.`,
         });
 
         return res.status(200).json({
@@ -384,7 +384,7 @@ const linkedinPostDelete = async (req, res) => {
       const deletedPost = await Post.findByIdAndDelete(postId);
 
       global.io.emit('notification', {
-        message: `${user.name} has deleted a post`,
+        message: `${user.name} has successfully deleted a post.`,
       });
 
       return res.status(200).json({

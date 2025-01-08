@@ -191,7 +191,7 @@ const UserUpdate = async (req, res) => {
     );
 
     global.io.emit('notification', {
-      message: `${req.body.name} has successfully updated their profile`,
+      message: `${req.body.name} has successfully updated their profile.`,
     });
 
     return res.status(200).json({ success: true, data: updatedUser });

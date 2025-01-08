@@ -33,7 +33,7 @@ const login = async (req, res) => {
     });
 
     global.io.emit('notification', {
-      message: `${findUser.name} has logged in`,
+      message: `${findUser.name} has successfully logged in.`,
       userId: findUser._id,
     });
 
@@ -82,7 +82,7 @@ const requestPasswordReset = async (req, res) => {
     });
 
     global.io.emit('notification', {
-      message: `password reset email sent`,
+      message: `A password reset email has been sent to ${findUser.email}; please check your inbox or spam folder to proceed.`,
     });
 
     return res.status(200).json({ message: "password reset email sent" });
@@ -156,10 +156,10 @@ const resetPassword = async (req, res) => {
     await findUser.save();
 
     global.io.emit('notification', {
-      message: `password reset successful`,
+      message: `Your password has been reset successfully.`,
     });
 
-    res.status(200).json({ message: "password reset successful" });
+    res.status(200).json({ message: "Your password has been reset successfully." });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
@@ -194,10 +194,10 @@ const resetCurrantPassword = async (req, res) => {
     await findUser.save();
 
     global.io.emit('notification', {
-      message: `password reset successful`,
+      message: `Your password has been reset successfully.`,
     });
 
-    res.status(200).json({ message: "password reset successful" });
+    res.status(200).json({ message: "Your password has been reset successfully." });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -244,7 +244,7 @@ const successGoogleLogin = async (req, res) => {
       });;
 
       global.io.emit('notification', {
-        message: `${findUser.name} has logged in`,
+        message: `${findUser.name} logged in successfully.`,
       });
 
       return res.redirect(`${process.env.FRONTEND_URL}/login?token=${token}`);
@@ -279,7 +279,7 @@ const successGoogleLogin = async (req, res) => {
     });
 
     global.io.emit('notification', {
-      message: `${findUser.name} has logged in`,
+      message: `${findUser.name} logged in successfully.`,
     });
 
     res.cookie('token', token, {

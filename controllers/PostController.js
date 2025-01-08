@@ -87,7 +87,7 @@ const PostAdd = async (req, res) => {
         // Emit notification for each created post
         createdPosts.forEach(post => {
             global.io.emit('notification', {
-                message: `${req.user.name} has created a new post on ${post.platform}`,
+                message: `${req.user.name} has created a new post on ${post.platform} successfully.`,
             });
         });
 
@@ -234,7 +234,7 @@ const PostUpdate = async (req, res) => {
         );
 
         global.io.emit('notification', {
-            message: `${req.user.name} has updated a post`,
+            message: `${req.user.name} has successfully updated a post.`,
         });
 
         return res.status(200).json({
@@ -293,7 +293,9 @@ const PostDelete = async (req, res) => {
 
         // Delete the post if it's a draft or if no social media accounts are linked
         const deletedPost = await Post.findByIdAndDelete(id);
-        global.io.emit('notification', { message: `${user.name} has deleted a post` });
+        global.io.emit('notification', {
+            message: `${user.name} has successfully deleted a post.`
+        });
         return res.status(200).json({ success: true, message: "Draft post deleted successfully from database", data: deletedPost });
 
     } catch (error) {

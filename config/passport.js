@@ -65,9 +65,6 @@ passport.use(
             // callbackURL: "https://schedulx-backend.onrender.com/api/v1/twitter/callback",
         },
         (accessToken, accessSecret, profile, done) => {
-            console.log("accessToken", accessToken, "accessSecret", accessSecret);
-
-            // Attach tokens to the profile for easy access later
             profile.accessToken = accessToken;
             profile.accessSecret = accessSecret;
 
