@@ -6,6 +6,7 @@ const { ImgUpload } = require("../controllers/UploadController.js");
 const axios = require('axios');
 const path = require('path');
 const { createWriteStream } = require('fs');
+const fs = require('fs');
 const { authMiddleware } = require("../middleware/authMiddleware");
 const uploadLocal = require("../config/multerConfig");
 
