@@ -1,4 +1,7 @@
+const redisClient = require("../utils/Redis.js");
 const { Calendar, SocialMedia, Post } = require("../models/index.js");
+
+const CACHE_EXPIRY = 3600;
 
 const calenderCreate = async (req, res) => {
     try {
@@ -19,7 +22,7 @@ const calenderCreate = async (req, res) => {
         // console.log(detail);
 
         // await detail.save();
-        
+
         return res.status(200).json({ success: true, data: { ...req.body, findSocialMediaAccount } });
     } catch (error) {
         console.log(error);
@@ -29,7 +32,16 @@ const calenderCreate = async (req, res) => {
 
 const allCalnder = async (req, res) => {
     try {
+
+        const cacheKey = 'calendar_all';
+        const cachedData = await redisClient.get(cacheKey);
+        if (cachedData) {
+            return res.status(200).json({ success: true, data: JSON.parse(cachedData) });
+        }
+
         const alldata = await Calendar.find();
+        await redisClient.set(cacheKey, JSON.stringify(alldata), { EX: CACHE_EXPIRY });
+
         return res.status(200).json({ success: true, data: alldata });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -40,7 +52,15 @@ const singleCalender = async (req, res) => {
     try {
         let { id } = req.params
 
+        const cacheKey = `calendar_${id}`;
+        const cachedData = await redisClient.get(cacheKey);
+        if (cachedData) {
+            return res.status(200).json({ success: true, data: JSON.parse(cachedData) });
+        }
+
         const detail = await Calendar.findById(id)
+
+        await redisClient.set(cacheKey, JSON.stringify(detail), { EX: CACHE_EXPIRY });
         return res.status(200).json({ success: true, data: detail });
     } catch (error) {
         return res.status(500).json({ success: false, error: error.message });

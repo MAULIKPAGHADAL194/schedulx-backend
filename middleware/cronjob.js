@@ -76,11 +76,6 @@ cron.schedule('*/1 * * * *', async () => {
 
                     // Process each social media account
                     for (const socialMedia of socialMediaAccounts) {
-                        // const mediaExists = post.platformSpecific.xtwitter?.mediaUrls?.length > 0 && await fs.access(post.platformSpecific.xtwitter.mediaUrls[0]).then(() => true).catch(() => false);
-                        // if (!mediaExists) {
-                        //     console.log(`Media file does not exist for post ${post._id}`);
-                        //     continue; // Skip processing this post
-                        // }
                         // Check if media exists before processing
                         if (socialMedia.platformName.toLowerCase() === 'xtwitter') {
                             console.log("Calling processTwitterPost");
@@ -99,10 +94,10 @@ cron.schedule('*/1 * * * *', async () => {
                 console.log(`Error processing post ${post._id}:`, postError.message);
 
                 // Update post status to failed
-                // await Post.findByIdAndUpdate(post._id, {
-                //     status: 'failed',
-                //     error: postError.message
-                // });
+                await Post.findByIdAndUpdate(post._id, {
+                    status: 'failed',
+                    error: postError.message
+                });
             }
         }
 
@@ -175,9 +170,6 @@ async function processTwitterPost(post, socialMedia) {
         const mentions = post.platformSpecific.xtwitter.mentions || [];
         const mentionText = mentions.map((mention) => `@${mention}`).join(' ');
 
-        // const tweetData = {
-        //     text: post.platformSpecific.xtwitter.text,
-        // };
         const tweetData = {
             text: `${post.platformSpecific.xtwitter.text} ${hashtagText} ${mentionText}`.trim(),
         };
@@ -229,8 +221,11 @@ async function processTwitterPost(post, socialMedia) {
                 platformSpecificPostId: twitterPostAdd.platformSpecific.xtwitter._id,
             });
 
-            global.io.emit('notification', {
+            const findUser = await User.findById(post.userId);
+
+            global.io.to(findUser._id.toString()).emit("notification", {
                 message: `Post successfully uploaded to Twitter under the username ${socialMedia.platformUserName ?? socialMedia.platformUserName}`,
+                receiverId: findUser._id,
             });
 
             console.log({ success: true, data: twitterPostAdd });
@@ -376,10 +371,12 @@ async function processLinkedinPost(post, socialMedia) {
             if (!linkedinPostAdd) {
                 throw new Error('Failed to update post status in database');
             }
-
-            global.io.emit('notification', {
-                message: `Post successfully uploaded to Twitter under the username ${socialMedia.platformUserName ?? socialMedia.platformUserName}`,
+            const findUser = await User.findById(post.userId);
+            global.io.to(findUser._id.toString()).emit("notification", {
+                message: `Post successfully uploaded to LinkedIn under the username ${socialMedia.platformUserName ?? socialMedia.platformUserName}`,
+                receiverId: findUser._id,
             });
+
             console.log({ success: true, data: linkedinPostAdd });
         } else {
             console.log({ success: false, message: "Failed to post linkedin post" });
@@ -459,10 +456,6 @@ async function twitterAnalytics(posts, socialMedia) {
             accessSecret: socialMedia.accessSecret,
         });
 
-        // const tweet = await twitterClient.v2.singleTweet(post.platformSpecific.twitter.postId, {
-        //     "tweet.fields": ["public_metrics", "created_at"]
-        // });
-
         const userDetails = await twitterClient.v2.user(socialMedia.socialMediaID, {
             "user.fields": ["public_metrics", "description", "created_at", "profile_image_url", "location"]
         });
@@ -495,15 +488,10 @@ async function twitterAnalytics(posts, socialMedia) {
             });
         }
 
-        // console.log(`[${getCurrentISTTime()}] Fetching user timeline...`);
         const allTweets = await twitterClient.v2.userTimeline(socialMedia.socialMediaID, {
             max_results: 100,
             "tweet.fields": ["public_metrics", "created_at"]
         });
-
-        console.log("allTweets", allTweets.data.data);
-        // console.log(`[${getCurrentISTTime()}] Successfully fetched ${allTweets.data.data.length} tweets`);
-
 
         // Process each tweet
         const allTweetsAnalytics = [];

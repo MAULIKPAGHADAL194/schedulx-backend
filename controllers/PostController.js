@@ -3,6 +3,8 @@ const { checkFileExists } = require('../utils/fileUtils');
 const path = require('path');
 const axios = require('axios');
 const { TwitterApi } = require("twitter-api-v2");
+const redisClient = require("../utils/Redis.js");
+const CACHE_EXPIRY = 3600;
 
 const PostAdd = async (req, res) => {
     try {
@@ -18,6 +20,7 @@ const PostAdd = async (req, res) => {
         if (req.user._id !== userId) {
             return res.status(403).json({ success: false, error: "User not found" });
         }
+        const findUser = await User.findById(req.user._id);
 
         const socialMedia = await SocialMedia.find({ _id: socialMediaId, userId: userId });
 
@@ -86,8 +89,9 @@ const PostAdd = async (req, res) => {
 
         // Emit notification for each created post
         createdPosts.forEach(post => {
-            global.io.emit('notification', {
+            global.io.to(findUser._id.toString()).emit("notification", {
                 message: `${req.user.name} has created a new post on ${post.platform} successfully.`,
+                receiverId: findUser._id,
             });
         });
 
@@ -106,6 +110,9 @@ const PostsGet = async (req, res) => {
         const userId = req.user._id;
         const filter = { userId, ...(status && { status }) };
         const socialMediaFilter = { userId, ...(platformName && { platformName }) };
+
+        const cacheKey = `posts_${userId}_${status || ''}_${platformName || ''}`;
+        const cachedPosts = await redisClient.get(cacheKey);
 
         // Fetch user social media accounts
         const socialMediaAccounts = await SocialMedia.find(socialMediaFilter)
@@ -143,10 +150,12 @@ const PostsGet = async (req, res) => {
                 analytics: analyticsMap[post._id] || [],
             }));
 
+
+
             // Only return account if it has posts
             return posts.length > 0 ? { ...account.toObject(), posts } : null;
         }).filter(Boolean); // Filter out null values
-
+        await redisClient.set(cacheKey, JSON.stringify(postsBySocialMediaId), { EX: CACHE_EXPIRY });
         res.status(200).json({ success: true, data: postsBySocialMediaId });
     } catch (error) {
         console.error('PostsGet Error:', error);
@@ -157,7 +166,14 @@ const PostsGet = async (req, res) => {
 const PostGet = async (req, res) => {
     try {
         let { id } = req.params;
+
+        const cacheKey = `post_${id}`;
+        const cachedPost = await redisClient.get(cacheKey);
+
         const detail = await Post.findById(id);
+
+        await redisClient.set(cacheKey, JSON.stringify(detail), { EX: CACHE_EXPIRY });
+
         return res.status(200).json({ success: true, data: detail });
     } catch (error) {
         return res.status(500).json({ success: false, error: error.message });
@@ -167,6 +183,9 @@ const PostGet = async (req, res) => {
 const PostUpdate = async (req, res) => {
     try {
         let { id } = req.params
+
+        const findUser = await User.findById(req.user._id);
+
 
         const existingPost = await Post.findById(id);
 
@@ -233,10 +252,10 @@ const PostUpdate = async (req, res) => {
             { new: true }
         );
 
-        global.io.emit('notification', {
+        global.io.to(findUser._id.toString()).emit("notification", {
             message: `${req.user.name} has successfully updated a post.`,
+            receiverId: findUser._id,
         });
-
         return res.status(200).json({
             success: true,
             data: updatedPost
@@ -250,6 +269,8 @@ const PostUpdate = async (req, res) => {
 const PostDelete = async (req, res) => {
     try {
         let { id } = req.params;
+
+        const findUser = await User.findById(req.user._id);
 
         const PostDetail = await Post.findById(id);
         if (!PostDetail) {
@@ -293,9 +314,12 @@ const PostDelete = async (req, res) => {
 
         // Delete the post if it's a draft or if no social media accounts are linked
         const deletedPost = await Post.findByIdAndDelete(id);
-        global.io.emit('notification', {
-            message: `${user.name} has successfully deleted a post.`
+
+        global.io.to(findUser._id.toString()).emit("notification", {
+            message: `${user.name} has successfully deleted a post.`,
+            receiverId: findUser._id,
         });
+
         return res.status(200).json({ success: true, message: "Draft post deleted successfully from database", data: deletedPost });
 
     } catch (error) {

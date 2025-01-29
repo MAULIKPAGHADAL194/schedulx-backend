@@ -39,23 +39,23 @@ app.use(passport.session());
 
 //! Security: Configure Helmet with custom Content Security Policy (CSP)
 // app.use(helmet());
-app.use(
-  helmet.contentSecurityPolicy({
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "http://localhost:5173"],
-      connectSrc: ["'self'", "https://schedulxbackend.onrender.com", "http://localhost:5173"],
-      imgSrc: ["'self'", "https://schedulxbackend.onrender.com", "http://localhost:5173"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-    },
-  })
-);
+// app.use(
+//   helmet.contentSecurityPolicy({
+//     directives: {
+//       defaultSrc: ["'self'"],
+//       scriptSrc: ["'self'", "http://localhost:5173"],
+//       connectSrc: ["'self'", "https://schedulxbackend.onrender.com", "http://localhost:5173"],
+//       imgSrc: ["'self'", "https://schedulxbackend.onrender.com", "http://localhost:5173"],
+//       styleSrc: ["'self'", "'unsafe-inline'"],
+//     },
+//   })
+// );
 
 // app.use(morgan("dev")); //? For Api hit to send Log 
 
 //! Enable CORS (Cross-Origin Resource Sharing)
 app.use(cors({
-  origin: [process.env.FRONTEND_URL, "https://schedulxbackend.onrender.com"],
+  origin: [process.env.FRONTEND_URL, "https://schedulxbackend.onrender.com", "http://localhost:5173"],
   credentials: true,
 }));
 
@@ -95,7 +95,7 @@ const server = http.createServer(app)
 
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL,
+    origin: [process.env.FRONTEND_URL, "http://localhost:5173"],
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -104,14 +104,15 @@ const io = new Server(server, {
 // Make io available globally
 global.io = io;
 
-// Middleware for socket.io (Optional - if you want to access io in routes through req.io)
-app.use((req, res, next) => {
-  req.io = io;
-  next();
-})
-
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
+
+  socket.on("join", (userId) => {
+    if (userId) {
+      socket.join(userId.toString());
+      console.log(`User ${userId} joined their private room`);
+    }
+  });
 
   socket.on("disconnect", () => {
     console.log("Socket disconnected:", socket.id);

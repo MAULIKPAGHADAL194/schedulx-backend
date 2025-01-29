@@ -3,7 +3,6 @@ const Joi = require("joi");
 const { authMiddleware } = require("../middleware/authMiddleware");
 const { PostAdd, PostsGet, PostGet, PostUpdate, PostDelete, UpdateScheduleTime } = require("../controllers/PostController");
 const validateRequest = require("../middleware/validate-request.js");
-const upload = require("../config/multerConfig");
 
 router.post("/post-add", authMiddleware, AddValidation, PostAdd);
 router.get("/posts-get", authMiddleware, PostsGet);

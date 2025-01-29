@@ -3,6 +3,8 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const sendEmail = require("../utils/SendEmail.js");
 const bcryptjs = require("bcryptjs");
+const redisClient = require("../utils/Redis.js");
+const CACHE_EXPIRY = 3600;
 
 const login = async (req, res) => {
   try {
@@ -20,7 +22,7 @@ const login = async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ message: "password Dose not match" });
     }
-    console.log("findUser", findUser);
+
     const user = {
       _id: findUser._id,
       name: findUser.name,
@@ -32,9 +34,14 @@ const login = async (req, res) => {
       expiresIn: "30day",
     });
 
-    global.io.emit('notification', {
+    // global.io.emit('notification', {
+    //   message: `${findUser.name} has successfully logged in.`,
+    //   userId: findUser._id,
+    // });
+
+    global.io.to(findUser._id.toString()).emit("notification", {
       message: `${findUser.name} has successfully logged in.`,
-      userId: findUser._id,
+      receiverId: findUser._id, // This ensures only the correct user sees it
     });
 
     // Store in cookies and session
@@ -81,9 +88,11 @@ const requestPasswordReset = async (req, res) => {
       text: message,
     });
 
-    global.io.emit('notification', {
+    global.io.to(findUser._id.toString()).emit("notification", {
       message: `A password reset email has been sent to ${findUser.email}; please check your inbox or spam folder to proceed.`,
+      receiverId: findUser._id,
     });
+
 
     return res.status(200).json({ message: "password reset email sent" });
   } catch (error) {
@@ -107,14 +116,17 @@ const resetPasswordOTP = async (req, res) => {
     });
 
     if (!findUser) {
-      global.io.emit('notification', {
+      global.io.to(findUser._id.toString()).emit("notification", {
         message: `Invalid or expired OTP`,
+        receiverId: findUser._id,
       });
+
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    global.io.emit('notification', {
+    global.io.to(findUser._id.toString()).emit("notification", {
       message: `OTP successfully verified`,
+      receiverId: findUser._id,
     });
 
     res.status(200).json({ message: "OTP successfully verified" });
@@ -155,8 +167,9 @@ const resetPassword = async (req, res) => {
     findUser.resetPasswordExpires = undefined;
     await findUser.save();
 
-    global.io.emit('notification', {
+    global.io.to(findUser._id.toString()).emit("notification", {
       message: `Your password has been reset successfully.`,
+      receiverId: findUser._id,
     });
 
     res.status(200).json({ message: "Your password has been reset successfully." });
@@ -193,8 +206,9 @@ const resetCurrantPassword = async (req, res) => {
     findUser.password = hashedPassword;
     await findUser.save();
 
-    global.io.emit('notification', {
+    global.io.to(findUser._id.toString()).emit("notification", {
       message: `Your password has been reset successfully.`,
+      receiverId: findUser._id,
     });
 
     res.status(200).json({ message: "Your password has been reset successfully." });
@@ -205,10 +219,21 @@ const resetCurrantPassword = async (req, res) => {
 
 const authCheck = async (req, res) => {
   try {
+    const cacheKey = `user_${req.user._id}`;
+    const cachedUser = await redisClient.get(cacheKey);
+    if (cachedUser) {
+      return res.status(200).json({ success: true, user: JSON.parse(cachedUser) });
+    }
+
     res.status(200).json({
       success: true,
       user: req.user
     });
+
+    await redisClient.set(cacheKey, JSON.stringify(req.user), {
+      EX: CACHE_EXPIRY,
+    });
+
   } catch (error) {
     console.log("Error in authCheck controller", error.message);
     res.status(500).json({ message: "Internal server error" });
@@ -222,6 +247,7 @@ const successGoogleLogin = async (req, res) => {
     }
 
     const { email, displayName, sub, id, provider } = req.user;
+    const cacheKey = `user_${id}`;
     console.log("req.user", req.user);
 
     // Check findUser
@@ -238,13 +264,19 @@ const successGoogleLogin = async (req, res) => {
       const token = jwt.sign({ user }, process.env.JWT_SECRET, {
         expiresIn: "30day",
       });
+
+      await redisClient.set(cacheKey, JSON.stringify({ user, token }), {
+        EX: CACHE_EXPIRY,
+      });
+
       res.cookie('token', token, {
         httpOnly: true,
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
       });;
 
-      global.io.emit('notification', {
+      global.io.to(findUser._id.toString()).emit("notification", {
         message: `${findUser.name} logged in successfully.`,
+        receiverId: findUser._id,
       });
 
       return res.redirect(`${process.env.FRONTEND_URL}/login?token=${token}`);
@@ -278,8 +310,13 @@ const successGoogleLogin = async (req, res) => {
       expiresIn: "30day",
     });
 
-    global.io.emit('notification', {
+    await redisClient.set(cacheKey, JSON.stringify({ user, token }), {
+      EX: CACHE_EXPIRY,
+    });
+
+    global.io.to(findUser._id.toString()).emit("notification", {
       message: `${findUser.name} logged in successfully.`,
+      receiverId: findUser._id,
     });
 
     res.cookie('token', token, {
@@ -295,8 +332,9 @@ const successGoogleLogin = async (req, res) => {
 
 const failureGoogleLogin = async (req, res) => {
   try {
-    global.io.emit('notification', {
+    global.io.to(findUser._id.toString()).emit("notification", {
       message: `Error in google login`,
+      receiverId: findUser._id,
     });
     res.send("Error");
   } catch (error) {

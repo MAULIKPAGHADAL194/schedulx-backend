@@ -1,8 +1,13 @@
+const redisClient = require("../utils/Redis.js");
 const { SocialMedia, User, Post } = require("../models/index.js");
+const CACHE_EXPIRY = 3600;
 
 const SocialmediaGets = async (req, res) => {
     try {
         const { filter } = req.query;
+
+        const cacheKey = `socialmedia_all_${req.user._id}_${filter || ''}`;
+        const cachedSocialMedia = await redisClient.get(cacheKey);
 
         const findSocialMedia = await SocialMedia.find({ userId: req.user._id }).select('-createdBy -updatedAt -__v -lastModifiedBy -accessToken -accessSecret');
 
@@ -29,6 +34,8 @@ const SocialmediaGets = async (req, res) => {
             })
         );
 
+        await redisClient.set(cacheKey, JSON.stringify(socialMediaWithPosts), { EX: CACHE_EXPIRY });
+
         return res.status(200).json({
             success: true,
             count: socialMediaWithPosts.length,
@@ -49,6 +56,8 @@ const SocialmediaGet = async (req, res) => {
         const { filter } = req.query;
 
         const includePosts = filter === 'post';
+        const cacheKey = `socialmedia_${id}_${req.user._id}_${filter || ''}`;
+        const cachedSocialMedia = await redisClient.get(cacheKey);
 
         const findUser = await User.findById(req.user._id);
 
@@ -69,6 +78,7 @@ const SocialmediaGet = async (req, res) => {
             });
             return res.status(200).json({ success: true, data: { ...findSocialMedia.toObject(), posts: findPosts } });
         }
+        await redisClient.set(cacheKey, JSON.stringify(result), { EX: CACHE_EXPIRY });
 
         return res.status(200).json({ success: true, data: findSocialMedia });
     } catch (error) {

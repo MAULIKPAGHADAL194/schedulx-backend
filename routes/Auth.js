@@ -12,8 +12,6 @@ const {
   resetPasswordOTP,
   successGoogleLogin,
   failureGoogleLogin,
-  // successFacebookLogin,
-  // failureFacebookLogin,
 } = require("../controllers/AuthController.js");
 
 const validateRequest = require("../middleware/validate-request.js");

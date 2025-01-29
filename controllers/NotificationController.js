@@ -1,3 +1,4 @@
+const redisClient = require("../utils/Redis.js");
 const Notification = require("../models/Notification")
 
 const createNotification = async (req , res) =>{
@@ -25,6 +26,7 @@ const createNotification = async (req , res) =>{
 const allNotification = async (req , res) =>{
     try{
         const detail = await Notification.find()
+        await redisClient.setEx('allNotifications', 3600, JSON.stringify(detail));
         res.status(200).json({success : true , data : detail})
     }catch(error){
         res.status(500).json({success : false , error : error.message})
@@ -36,6 +38,7 @@ const singleNotification = async (req , res) =>{
     try{
         let {id} = req.params
         const detail = await Notification.findById(id)
+        await redisClient.setEx('singleNotifications', 3600, JSON.stringify(detail));
         res.status(200).json({success : true , data : detail})
     }catch(error){
         res.status(500).json({success : false , error : error.message})

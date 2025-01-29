@@ -1,5 +1,7 @@
+const redisClient = require("../utils/Redis.js");
 const { User, SocialMedia, Post, Analytics } = require("../models/index.js");
 const bcryptjs = require("bcryptjs");
+const CACHE_EXPIRY = 3600;
 
 const UserAdd = async (req, res) => {
   try {
@@ -25,24 +27,27 @@ const UserAdd = async (req, res) => {
 
     await createUser.save();
 
-    global.io.emit('notification', {
+    global.io.to(findUser._id.toString()).emit("notification", {
       message: `${name} has successfully registered`,
+      receiverId: findUser._id,
     });
-
     return res.status(201).json({ success: true, data: createUser });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
 
+
 const UsersGet = async (req, res) => {
   try {
     const findUser = await User.find()
+    await redisClient.set(cacheKey, JSON.stringify(findUser), { EX: CACHE_EXPIRY });
     return res.status(200).json({ success: true, data: findUser });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // const UserGet = async (req, res) => {
 //   try {
@@ -128,9 +133,13 @@ const UsersGet = async (req, res) => {
 //   }
 // };
 
+
 const UserGet = async (req, res) => {
   try {
     const { id } = req.params;
+
+    const cacheKey = `user_${id}`;
+    const cachedUserData = await redisClient.get(cacheKey);
 
     const [user, socialMediaAccounts] = await Promise.all([
       User.findById(id).select('-createdAt -updatedAt -__v -isActive -lastModifiedBy -password'),
@@ -163,6 +172,8 @@ const UserGet = async (req, res) => {
       }))
     }));
 
+    await redisClient.set(cacheKey, JSON.stringify(socialMediaWithPosts), { EX: CACHE_EXPIRY });
+
     res.status(200).json({ success: true, data: { user, socialMedia: socialMediaWithPosts } });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -190,10 +201,10 @@ const UserUpdate = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    global.io.emit('notification', {
+    global.io.to(findUser._id.toString()).emit("notification", {
       message: `${req.body.name} has successfully updated their profile.`,
+      receiverId: findUser._id,
     });
-
     return res.status(200).json({ success: true, data: updatedUser });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
