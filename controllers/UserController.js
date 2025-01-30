@@ -7,8 +7,8 @@ const UserAdd = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-    const findUser = await User.findOne({ email: email });
-    if (findUser) {
+    const findUser1 = await User.findOne({ email: email });
+    if (findUser1) {
       return res.status(400).json({
         success: false,
         message:
@@ -19,19 +19,19 @@ const UserAdd = async (req, res) => {
     const salt = await bcryptjs.genSalt(10);
     const hashedPassword = await bcryptjs.hash(password, salt);
 
-    const createUser = new User({
+    const findUser = new User({
       ...req.body,
       createdBy: name,
       password: hashedPassword,
     });
 
-    await createUser.save();
+    await findUser.save();
 
     global.io.to(findUser._id.toString()).emit("notification", {
       message: `${name} has successfully registered`,
       receiverId: findUser._id,
     });
-    return res.status(201).json({ success: true, data: createUser });
+    return res.status(201).json({ success: true, data: findUser });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
