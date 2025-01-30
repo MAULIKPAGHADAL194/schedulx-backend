@@ -1,5 +1,8 @@
 const jwt = require("jsonwebtoken");
 const blacklist = new Set();
+const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
 
 // Function to extract token from cookies or Authorization header
 const getToken = (req) => {
@@ -53,6 +56,22 @@ const logout = async (req, res) => {
         ErrorCode: "INVALID_TOKEN",
         ErrorMessage: "Token not provided",
       });
+    }
+
+    // Verify JWT and extract user details
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded.user;
+
+    // If the user logged in via Google, revoke their token
+    if (req.user?.thirdParty?.provider === "google" && req.user?.thirdParty?.sub) {
+      const revokeUrl = `https://accounts.google.com/o/oauth2/revoke?token=${req.user.thirdParty.sub}`;
+
+      try {
+        await axios.post(revokeUrl);
+        console.log("Google access token revoked successfully");
+      } catch (googleError) {
+        console.error("Error revoking Google token:", googleError.response?.data || googleError.message);
+      }
     }
 
     // Add the token to the blacklist
