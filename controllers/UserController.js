@@ -192,7 +192,7 @@ const UserUpdate = async (req, res) => {
         message: "The User ID data does not exist.",
       });
     }
-    const updatedUser = await User.findByIdAndUpdate(
+    const findUser = await User.findByIdAndUpdate(
       id,
       {
         ...req.body,
@@ -205,7 +205,7 @@ const UserUpdate = async (req, res) => {
       message: `${req.body.name} has successfully updated their profile.`,
       receiverId: findUser._id,
     });
-    return res.status(200).json({ success: true, data: updatedUser });
+    return res.status(200).json({ success: true, data: findUser });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }
