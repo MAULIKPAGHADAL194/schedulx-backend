@@ -58,7 +58,7 @@ const twitterAdd = async (req, res) => {
 
     } catch (error) {
         console.log("Error in authCheck controller", error.message);
-        return res.status(500).json({ message: "Internal server error" });
+        return res.status(500).json({ message: "Internal server error",errorMessage:error.message,error:error.message });
 
     }
 }
